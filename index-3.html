@@ -1,0 +1,1611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Festung Europa">
+<meta name="theme-color" content="#080806">
+<title>Festung Europa — 1943</title>
+<style>
+:root{
+  --dark:#080806;--fg:#3a4a2e;--tan:#c8b882;--rust:#8b3a1a;
+  --paper:#d6c99a;--muted:#5a5a3c;--gold:#c8b050;--white:#f0ead8;--warn:#c07020;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{
+  background:var(--dark);
+  font-family:'Courier New',Courier,monospace;
+  color:var(--white);
+  height:100dvh;
+  overflow:hidden;
+  display:flex;flex-direction:column;
+  touch-action:manipulation;
+}
+
+/* TOPBAR */
+.topbar{
+  background:#050503;border-bottom:2px solid var(--rust);
+  padding:4px 10px;display:flex;align-items:center;gap:6px;
+  flex-shrink:0;flex-wrap:wrap;
+}
+.topbar h1{
+  font-family:'Arial Black',Arial,sans-serif;
+  font-size:1.1rem;letter-spacing:3px;color:var(--tan);
+}
+.stat{
+  background:#0d0d08;border:1px solid #2a2810;
+  padding:2px 6px;font-size:0.55rem;
+  display:flex;flex-direction:column;align-items:center;min-width:48px;
+}
+.stat .lbl{color:var(--muted);font-size:0.44rem;text-transform:uppercase;letter-spacing:1px;}
+.stat .val{color:var(--tan);font-family:'Arial Black',Arial,sans-serif;font-size:0.85rem;}
+.stat .val.danger{color:#c02020;}.stat .val.warn{color:var(--warn);}
+.sup-wrap{display:flex;align-items:center;gap:3px;}
+.sup-lbl{font-size:0.48rem;color:var(--muted);width:14px;}
+.sup-bar{height:5px;background:#1a1a08;border:1px solid #2a2810;width:50px;}
+.sup-fill{height:100%;transition:width 0.4s;}
+.sup-fill.de{background:linear-gradient(90deg,#6a4a10,#c8a030);}
+.sup-fill.so{background:linear-gradient(90deg,#6a0808,#c02020);}
+.sup-fill.wa{background:linear-gradient(90deg,#0a4a0a,#2a8a2a);}
+.sup-num{font-size:0.5rem;color:var(--tan);font-family:'Arial Black',Arial,sans-serif;min-width:22px;}
+.topbtns{margin-left:auto;display:flex;gap:4px;}
+.tbtn{
+  background:transparent;border:1px solid;
+  font-family:'Arial Black',Arial,sans-serif;
+  font-size:0.7rem;letter-spacing:1px;padding:3px 8px;cursor:pointer;
+}
+.tbtn.end{border-color:var(--tan);color:var(--tan);}
+.tbtn.end:hover,.tbtn.end:active{background:#1a1a08;}
+.tbtn.save{border-color:#5aaa2a;color:#5aaa2a;}
+.tbtn.save:hover,.tbtn.save:active{background:#081808;}
+
+/* PHASE BAR */
+.phasebar{
+  background:#040403;border-bottom:1px solid #2a2810;
+  padding:3px 10px;display:flex;align-items:center;gap:6px;
+  flex-shrink:0;overflow-x:auto;
+}
+.phase-step{
+  padding:2px 6px;font-family:'Arial Black',Arial,sans-serif;
+  font-size:0.65rem;letter-spacing:1px;color:var(--muted);
+  border:1px solid #1a1a08;white-space:nowrap;flex-shrink:0;
+}
+.phase-step.active{color:var(--tan);border-color:var(--tan);background:#1a1408;}
+.phase-step.done{color:#3a3a20;border-color:#1a1a08;}
+
+/* FRONT TABS */
+.front-tabs{
+  display:flex;background:#040403;
+  border-bottom:2px solid #1a1a08;flex-shrink:0;
+}
+.ftab{
+  padding:5px 12px;font-family:'Arial Black',Arial,sans-serif;
+  font-size:0.75rem;letter-spacing:1px;cursor:pointer;
+  color:var(--muted);border-right:1px solid #1a1a08;
+  flex:1;text-align:center;
+}
+.ftab.active{color:var(--tan);background:#0d0d08;border-bottom:2px solid var(--tan);margin-bottom:-2px;}
+.ftab .adot{
+  display:inline-block;width:6px;height:6px;border-radius:50%;
+  background:#c02020;margin-left:3px;vertical-align:middle;
+  animation:pulse 1s infinite;
+}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.2;}}
+
+/* MAIN LAYOUT */
+.main{display:flex;flex:1;overflow:hidden;}
+
+/* MAP AREA */
+.map-panel{display:none;flex:1;position:relative;overflow:hidden;background:#0e0f0a;}
+.map-panel.active{display:block;}
+
+svg.game-map{
+  width:100%;height:100%;
+  display:block;
+  cursor:default;
+}
+
+/* Map base - parchment/military aesthetic */
+.map-bg{fill:#1a1a0e;}
+.map-grid line{stroke:#1e1e12;stroke-width:0.5;}
+.water{fill:#0a0f1a;opacity:0.7;}
+.coast-label{
+  font-family:'Arial Black',Arial,sans-serif;
+  font-size:8px;fill:#1a3050;letter-spacing:2px;
+  pointer-events:none;
+}
+
+/* Territory polygons */
+.region{
+  cursor:pointer;
+  transition:filter 0.15s,stroke-width 0.15s;
+  stroke-linejoin:round;
+}
+.region:hover{filter:brightness(1.35);}
+.region.selected{filter:brightness(1.55);}
+.region.de{fill:#3d2a08;stroke:#8a5a18;stroke-width:1.5;}
+.region.so{fill:#2a0808;stroke:#6a1818;stroke-width:1.5;}
+.region.al{fill:#082008;stroke:#1a5a18;stroke-width:1.5;}
+.region.de.key{stroke:#c8a030;stroke-width:2;}
+.region.de.obj{stroke:#c8b882;stroke-width:2.5;}
+.region.so.obj{stroke:#c8b882;stroke-width:2.5;}
+.region.under-attack{
+  stroke:#c02020 !important;stroke-width:3 !important;
+  animation:atk 0.8s infinite;
+}
+@keyframes atk{0%,100%{stroke-opacity:1;}50%{stroke-opacity:0.2;}}
+
+/* Frontline */
+.frontline{
+  fill:none;stroke:#8b1a1a;stroke-width:1.5;
+  stroke-dasharray:6 3;opacity:0.6;pointer-events:none;
+}
+
+/* Territory labels */
+.t-name{
+  font-family:'Arial Black',Arial,sans-serif;
+  font-size:8.5px;letter-spacing:0.5px;
+  pointer-events:none;
+  text-shadow:1px 1px 0 #000,-1px -1px 0 #000;
+  paint-order:stroke;
+  stroke:#000;stroke-width:2px;
+}
+.t-name.de-lbl{fill:#d0a840;}
+.t-name.so-lbl{fill:#d05050;}
+.t-name.al-lbl{fill:#50b850;}
+.t-name.obj-lbl{fill:#c8b882;font-size:9.5px;}
+.t-sub{
+  font-family:'Courier New',Courier,monospace;
+  font-size:6.5px;pointer-events:none;fill:#888;
+  paint-order:stroke;stroke:#000;stroke-width:1.5px;
+}
+
+/* Block icons on map */
+.blk-grp{pointer-events:none;}
+.blk-rect{fill:#3a2808;stroke:#c8a030;stroke-width:0.8;}
+.blk-num{
+  font-family:'Arial Black',Arial,sans-serif;
+  font-size:8px;fill:#c8a030;text-anchor:middle;
+  pointer-events:none;
+}
+
+/* SU token */
+.su-token{cursor:pointer;}
+.su-token circle{transition:filter 0.12s;}
+.su-token:hover circle{filter:brightness(1.4);}
+
+/* Map legend */
+.map-legend{
+  position:absolute;bottom:10px;left:10px;z-index:10;
+  background:#08080aee;border:1px solid #2a2810;
+  padding:7px 10px;font-size:0.55rem;line-height:2;
+  pointer-events:none;
+}
+.ll{display:flex;align-items:center;gap:4px;}
+.ld{width:11px;height:7px;border-radius:1px;flex-shrink:0;}
+
+/* SIDEBAR */
+.sidebar{
+  width:260px;background:#06080a;
+  border-left:2px solid var(--fg);
+  display:flex;flex-direction:column;overflow:hidden;flex-shrink:0;
+}
+@media(max-width:700px){
+  .main{flex-direction:column;position:relative;}
+  .map-panel{height:100%;flex:1;}
+  .sidebar{
+    position:fixed;bottom:0;left:0;right:0;
+    height:60vh;z-index:1200;
+    border-left:none;border-top:2px solid var(--fg);
+    display:none;
+  }
+  .sb-body{max-height:180px;}
+  .obj-panel{max-height:80px;}
+  .su-panel{max-height:60px;}
+  .dispatch{max-height:80px;}
+}
+.sb-head{
+  background:var(--fg);padding:6px 10px;
+  font-family:'Arial Black',Arial,sans-serif;
+  font-size:0.8rem;letter-spacing:2px;color:var(--tan);
+  border-bottom:2px solid var(--rust);flex-shrink:0;
+}
+.sb-body{flex:1;overflow-y:auto;padding:8px;-webkit-overflow-scrolling:touch;}
+.no-sel{color:var(--muted);font-size:0.62rem;line-height:2;}
+.dname{font-family:'Arial Black',Arial,sans-serif;font-size:1rem;letter-spacing:1px;color:var(--tan);}
+.dctrl{font-size:0.55rem;letter-spacing:2px;text-transform:uppercase;margin-bottom:5px;}
+.dctrl.de{color:#c8a030;}.dctrl.so{color:#c02020;}.dctrl.al{color:#2a8a2a;}
+.dsec{border-top:1px solid #141408;padding:5px 0;}
+.dsec h4{font-size:0.52rem;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:3px;}
+.sbadge{display:inline-block;padding:2px 7px;font-family:'Arial Black',Arial,sans-serif;font-size:0.72rem;margin-bottom:3px;}
+.sbadge.weak{background:#081808;color:#5aaa2a;border:1px solid #1a4a10;}
+.sbadge.medium{background:#1e1404;color:#c8a030;border:1px solid #4a3a10;}
+.sbadge.strong{background:#1e0808;color:#c03030;border:1px solid #4a1010;}
+.importance{font-size:0.58rem;color:#a0c070;line-height:1.6;margin-top:2px;}
+.incentive{font-size:0.58rem;color:var(--tan);line-height:1.6;margin-top:3px;border-left:2px solid var(--tan);padding-left:4px;}
+.abtn{
+  width:100%;padding:6px;margin-top:3px;border:1px solid;
+  font-family:'Arial Black',Arial,sans-serif;
+  font-size:0.75rem;letter-spacing:1px;cursor:pointer;background:transparent;
+}
+.abtn.fight{border-color:#c8a030;color:#c8a030;}
+.abtn.fight:active{background:#1a1008;}
+.abtn:disabled{opacity:0.2;cursor:not-allowed;}
+
+/* Objectives */
+.obj-panel{background:#060806;border-top:1px solid var(--fg);padding:5px 8px;flex-shrink:0;max-height:105px;overflow-y:auto;}
+.obj-panel h4{font-family:'Arial Black',Arial,sans-serif;font-size:0.65rem;letter-spacing:2px;color:var(--gold);margin-bottom:3px;}
+.obj-row{display:flex;align-items:flex-start;gap:4px;padding:2px 0;font-size:0.56rem;border-bottom:1px solid #0e0e08;}
+.obj-text{flex:1;color:var(--paper);line-height:1.4;}
+.obj-progress{color:var(--muted);font-size:0.5rem;}
+
+/* SU panel */
+.su-panel{background:#060806;border-top:1px solid var(--fg);padding:5px 8px;flex-shrink:0;}
+.su-panel h4{font-family:'Arial Black',Arial,sans-serif;font-size:0.65rem;letter-spacing:2px;color:var(--tan);margin-bottom:3px;}
+.su-row{display:flex;align-items:center;gap:4px;padding:2px 0;border-bottom:1px solid #0e0e08;font-size:0.55rem;}
+
+/* Dispatch */
+.dispatch{background:#040403;border-top:1px solid #1a1a08;padding:5px 8px;flex-shrink:0;max-height:110px;overflow-y:auto;}
+.dispatch h4{font-family:'Arial Black',Arial,sans-serif;font-size:0.65rem;letter-spacing:2px;color:var(--rust);margin-bottom:3px;}
+.dmsg{font-size:0.55rem;line-height:1.6;color:var(--paper);border-left:2px solid var(--rust);padding-left:5px;margin-bottom:3px;}
+.dmsg.good{border-left-color:#5aaa2a;color:#8acc50;}
+.dmsg.event{border-left-color:var(--gold);color:var(--gold);}
+.dmsg.enemy{border-left-color:#c02020;color:#e06060;}
+.dmsg.okw{border-left-color:#c8b882;color:#c8b882;}
+.dmsg.auto{border-left-color:#4a5a3a;color:#8a9a6a;}
+.dmsg .dt{color:var(--muted);font-size:0.46rem;}
+
+/* MODALS */
+.moverlay{
+  position:fixed;inset:0;background:#000d;z-index:2000;
+  display:none;align-items:center;justify-content:center;
+  padding:10px;
+}
+.moverlay.open{display:flex;}
+.modal{
+  background:#080806;border:2px solid var(--tan);
+  width:420px;max-width:100%;max-height:90vh;
+  overflow-y:auto;padding:14px;
+  -webkit-overflow-scrolling:touch;
+}
+.modal h2{font-family:'Arial Black',Arial,sans-serif;font-size:1.05rem;letter-spacing:2px;color:var(--tan);margin-bottom:2px;}
+.modal .msub{color:var(--muted);font-size:0.56rem;margin-bottom:8px;}
+.msec{margin-bottom:9px;}
+.msec h4{font-size:0.52rem;letter-spacing:2px;color:var(--rust);text-transform:uppercase;margin-bottom:3px;border-bottom:1px solid #141408;padding-bottom:2px;}
+.arow{display:flex;justify-content:space-between;padding:2px 0;font-size:0.61rem;border-bottom:1px solid #0e0e08;}
+.arow .an{color:var(--paper);}.arow .ac{color:var(--tan);font-family:'Arial Black',Arial,sans-serif;}
+.mtotal{display:flex;justify-content:space-between;font-family:'Arial Black',Arial,sans-serif;font-size:0.85rem;color:var(--tan);border-top:1px solid var(--tan);padding-top:3px;margin-top:4px;}
+.macts{display:flex;gap:5px;margin-top:8px;}
+.mbtn{
+  flex:1;padding:6px;border:1px solid;
+  font-family:'Arial Black',Arial,sans-serif;
+  font-size:0.75rem;letter-spacing:1px;cursor:pointer;background:transparent;
+}
+.mbtn.ok{border-color:#3a6a1a;color:#5aaa2a;}.mbtn.ok:active{background:#081808;}
+.mbtn.no{border-color:var(--muted);color:var(--muted);}.mbtn.no:active{background:#101008;}
+.resbtn{
+  flex:1;padding:7px;border:2px solid;
+  font-family:'Arial Black',Arial,sans-serif;
+  font-size:0.82rem;letter-spacing:1px;cursor:pointer;background:transparent;
+}
+.resbtn.v{border-color:#5aaa2a;color:#5aaa2a;}.resbtn.v:active{background:#081808;}
+.resbtn.d{border-color:var(--rust);color:var(--rust);}.resbtn.d:active{background:#180808;}
+.lrow{display:flex;justify-content:space-between;align-items:center;padding:3px 0;font-size:0.6rem;border-bottom:1px solid #0e0e08;}
+.lrow input{width:38px;background:#0e1008;border:1px solid var(--fg);color:var(--tan);padding:1px 3px;text-align:center;font-size:0.75rem;}
+.atk-card{border:1px solid #3a1010;padding:8px;margin-bottom:6px;cursor:pointer;}
+.atk-card:active,.atk-card.selected{border-color:#c8a030;background:#1a1008;}
+.atk-card h3{font-family:'Arial Black',Arial,sans-serif;font-size:0.88rem;letter-spacing:1px;color:var(--tan);margin-bottom:2px;}
+.atk-card .ac-detail{font-size:0.58rem;color:var(--paper);line-height:1.7;}
+.atk-card .ac-front{font-size:0.52rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;}
+.atk-card .ac-auto{font-size:0.52rem;color:#4a5a3a;margin-top:3px;}
+.okw-modal{border-color:var(--gold);}
+.okw-modal h2{color:var(--gold);}
+.okw-intel{font-size:0.63rem;line-height:1.8;color:var(--paper);background:#0e0e08;padding:8px;margin-bottom:8px;border-left:3px solid var(--gold);}
+.evt-modal{border-color:var(--gold);}
+.evt-modal h2{color:var(--gold);}
+.evt-body{font-size:0.66rem;line-height:1.9;color:var(--paper);padding:5px 0;}
+.evt-eff{color:var(--tan);font-size:0.6rem;margin-top:4px;border-left:2px solid var(--tan);padding-left:5px;}
+.token-sel{padding:4px;border:1px solid var(--fg);margin-bottom:3px;cursor:pointer;font-size:0.6rem;color:var(--paper);}
+.token-sel:active,.token-sel.active{border-color:var(--tan);background:#1a1408;}
+
+/* Install banner */
+#install-banner{
+  display:none;position:fixed;bottom:0;left:0;right:0;
+  background:#1a1408;border-top:2px solid var(--tan);
+  padding:10px 14px;z-index:3000;
+  display:flex;align-items:center;justify-content:space-between;
+  font-size:0.7rem;
+}
+#install-banner.hidden{display:none;}
+
+/* Leaflet overrides — dark military style */
+.leaflet-container { background: #0e0f0a !important; }
+.leaflet-tile-pane { filter: sepia(0.5) brightness(0.65) contrast(1.15) saturate(0.7); }
+.leaflet-control-zoom a { background:#0e0e08; color:var(--tan); border-color:#2a2810; }
+.leaflet-control-zoom a:hover { background:#1a1a08; }
+.leaflet-popup-content-wrapper { background:#0a0a06; border:1px solid var(--tan); border-radius:0; box-shadow:0 3px 10px #000c; }
+.leaflet-popup-content { color:var(--white); font-family:'Courier New',monospace; font-size:0.65rem; margin:8px 12px; }
+.leaflet-popup-tip { background:#0a0a06; }
+.leaflet-popup-close-button { color:var(--tan) !important; }
+.map-legend { position:absolute; bottom:14px; left:14px; z-index:800; background:#080806ee; border:1px solid #2a2810; padding:8px 12px; font-size:0.57rem; line-height:2; pointer-events:none; }
+.ll { display:flex; align-items:center; gap:5px; }
+.ld { width:11px; height:7px; border-radius:1px; flex-shrink:0; }
+/* Block + SU markers */
+.blk-icon { background:#3a2808; border:1.5px solid #c8a030; border-radius:2px; font-family:'Arial Black',Arial,sans-serif; font-size:11px; color:#c8b882; display:flex; align-items:center; justify-content:center; box-shadow:0 1px 4px #000a; }
+.su-icon { border-radius:50%; border:2px solid #fff; font-family:'Arial Black',Arial,sans-serif; font-size:8px; color:#fff; display:flex; align-items:center; justify-content:center; box-shadow:0 1px 5px #000c; cursor:pointer; }
+.under-attack-pulse { animation: atk-ring 0.7s infinite; }
+@keyframes atk-ring { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+</style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+</head>
+<body>
+<div class="topbar">
+  <h1>⚔ FESTUNG EUROPA</h1>
+  <div class="stat"><span class="lbl">Manpower</span><span class="val" id="pool">480</span></div>
+  <div class="stat"><span class="lbl">Income</span><span class="val" id="income">+0</span></div>
+  <div class="stat"><span class="lbl">Turn</span><span class="val" id="turn">1</span></div>
+  <div class="stat"><span class="lbl">Date</span><span class="val" id="mdate">Jul 1943</span></div>
+  <div class="stat"><span class="lbl">PC</span><span class="val" id="pc">0</span></div>
+  <div class="stat"><span class="lbl">Held</span><span class="val" id="deheld">-</span></div>
+  <div class="sup-wrap">
+    <div class="sup-lbl" style="color:#c8a030">DE</div>
+    <div class="sup-bar"><div class="sup-fill de" id="de-bar" style="width:72%"></div></div>
+    <div class="sup-num" id="de-sup">72%</div>
+  </div>
+  <div class="sup-wrap">
+    <div class="sup-lbl" style="color:#c02020">SO</div>
+    <div class="sup-bar"><div class="sup-fill so" id="so-bar" style="width:78%"></div></div>
+    <div class="sup-num" id="so-sup">78%</div>
+  </div>
+  <div class="sup-wrap">
+    <div class="sup-lbl" style="color:#2a8a2a">WA</div>
+    <div class="sup-bar"><div class="sup-fill wa" id="wa-bar" style="width:70%"></div></div>
+    <div class="sup-num" id="wa-sup">70%</div>
+  </div>
+  <div class="topbtns">
+    <button class="tbtn save" onclick="saveGame()">💾 SAVE</button>
+    <button class="tbtn end" onclick="startTurn()">TURN →</button>
+  </div>
+</div>
+
+<div class="phasebar">
+  <span style="font-size:0.5rem;color:var(--muted)">PHASE:</span>
+  <div class="phase-step" id="ph-attacks">1·ATTACKS</div>
+  <div class="phase-step" id="ph-choose">2·CHOOSE</div>
+  <div class="phase-step" id="ph-fight">3·FIGHT</div>
+  <div class="phase-step" id="ph-auto">4·AUTO</div>
+  <div class="phase-step" id="ph-okw">5·OKW</div>
+  <div class="phase-step" id="ph-manage">6·MANAGE</div>
+</div>
+
+<div class="front-tabs">
+  <div class="ftab active" id="tab-east" onclick="switchFront('east')">EAST <span id="east-adot" class="adot" style="display:none"></span></div>
+  <div class="ftab" id="tab-italy" onclick="switchFront('italy')">ITALY <span id="italy-adot" class="adot" style="display:none"></span></div>
+  <div class="ftab" id="tab-west" onclick="switchFront('west')">WEST <span id="west-adot" class="adot" style="display:none"></span></div>
+</div>
+
+
+<div class="main">
+  <div class="map-panel active" id="panel-east">
+    <div id="map-east" style="width:100%;height:100%;"></div>
+    <div class="map-legend" id="map-legend-panel" style="max-width:140px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
+        <span style="font-size:0.55rem;color:var(--tan);font-weight:bold">LEGEND</span>
+        <button onclick="toggleLegend()" style="background:transparent;border:none;color:var(--muted);font-size:0.7rem;cursor:pointer;padding:0 2px">✕</button>
+      </div>
+      <div id="legend-content">
+        <div class="ll"><div class="ld" style="background:rgba(160,120,30,0.5);border:1px solid #c8a030"></div>German</div>
+        <div class="ll"><div class="ld" style="background:rgba(160,30,30,0.5);border:1px solid #c02020"></div>Soviet</div>
+        <div class="ll"><div class="ld" style="background:rgba(30,130,60,0.5);border:1px solid #2a8a2a"></div>Allied</div>
+        <div class="ll"><div class="ld" style="background:rgba(200,184,130,0.6);border:2px solid #c8b882"></div>★ Obj</div>
+      </div>
+    </div>
+    <button onclick="toggleLegend()" id="legend-show-btn" style="display:none;position:absolute;bottom:10px;left:10px;z-index:10;background:#080806dd;border:1px solid #2a2810;color:var(--tan);font-size:0.6rem;padding:4px 8px;cursor:pointer">MAP KEY</button>
+  </div>
+  <div class="map-panel" id="panel-italy">
+    <div id="map-italy" style="width:100%;height:100%;"></div>
+  </div>
+  <div class="map-panel" id="panel-west">
+    <div id="map-west" style="width:100%;height:100%;"></div>
+  </div>
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <div class="sb-head" id="sb-title">SELECT TERRITORY</div>
+  <div class="sb-body" id="sb-body">
+    <div class="no-sel">
+      Tap any territory on the map.<br><br>
+      Press TURN → to begin.<br><br>
+      🟡 Numbers = garrison blocks<br>
+      Each block = 200 manpower<br>
+      Each block = 100pts battle power
+    </div>
+  </div>
+  <div class="obj-panel"><h4>⚑ OBJECTIVES</h4><div id="obj-list"></div></div>
+  <div class="su-panel"><h4>★ FIRE BRIGADES</h4><div id="su-list"></div></div>
+  <div class="dispatch" id="dlog">
+    <h4>📡 OKH DISPATCH</h4>
+    <div class="dmsg okw"><div class="dt">T1 · JUL 1943</div>Kursk has failed. Three fronts active. Awaiting orders.</div>
+  </div>
+</div>
+</div><!-- /main -->
+<button id="sb-toggle" onclick="toggleSidebar()"
+  style="display:none;position:fixed;bottom:20px;right:20px;z-index:1500;
+  background:#3a4a2e;border:2px solid #c8b882;color:#c8b882;
+  font-family:'Arial Black',Arial,sans-serif;font-size:0.8rem;
+  padding:10px 14px;border-radius:50px;cursor:pointer;box-shadow:0 2px 8px #000a">
+  📋 INFO
+</button>
+
+<!-- ══════════ MODALS ══════════ -->
+
+<!-- Attack Selection -->
+<div class="moverlay" id="atk-sel-modal">
+<div class="modal" style="border-color:#c02020;width:480px">
+  <h2 style="color:#e04040">⚠ INCOMING ATTACKS</h2>
+  <div class="msub" id="as-sub"></div>
+  <div id="atk-cards"></div>
+  <div class="macts"><button class="mbtn ok" id="as-confirm-btn" onclick="confirmAtkChoice()" disabled>FIGHT SELECTED →</button></div>
+</div>
+</div>
+
+<!-- Battle -->
+<div class="moverlay" id="battle-modal">
+<div class="modal">
+  <h2 id="bm-title">DEFEND</h2>
+  <div class="msub" id="bm-sub"></div>
+  <div class="msec"><h4>Enemy Force</h4><div id="bm-enemy"></div></div>
+  <div class="msec">
+    <h4>Your Allocation</h4>
+    <div id="bm-alloc"></div>
+    <div class="mtotal"><span>TOTAL</span><span id="bm-tot"></span></div>
+    <div style="font-size:0.54rem;color:var(--muted);margin-top:3px" id="bm-rem"></div>
+  </div>
+  <div class="msec" id="bm-su-sec" style="display:none"><h4>★ Attach Fire Brigade?</h4><div id="bm-su-opts"></div></div>
+  <div class="msec"><h4>Setup</h4><div id="bm-setup" style="font-size:0.61rem;line-height:2;color:var(--paper)"></div></div>
+  <div class="macts">
+    <button class="mbtn no" onclick="closeM('battle-modal')">CANCEL</button>
+    <button class="mbtn ok" id="bm-launch-btn" onclick="launchBattle()">LAUNCH BATTLE</button>
+  </div>
+</div>
+</div>
+
+<!-- Result -->
+<div class="moverlay" id="res-modal">
+<div class="modal">
+  <h2>BATTLE REPORT</h2>
+  <div class="msub" id="r-sub"></div>
+  <div class="msec">
+    <h4>Outcome</h4>
+    <div style="display:flex;gap:5px;margin-bottom:6px">
+      <button class="resbtn v" onclick="setRes('v')">✓ HELD</button>
+      <button class="resbtn d" onclick="setRes('d')">✗ LOST</button>
+    </div>
+  </div>
+  <div class="msec"><h4>Losses — survivors refunded</h4><div id="r-losses"></div></div>
+  <div class="msec" id="r-su-sec" style="display:none"><h4>Fire Brigade Casualties?</h4><div id="r-su-lost"></div></div>
+  <div class="macts">
+    <button class="mbtn no" onclick="closeM('res-modal')">BACK</button>
+    <button class="mbtn ok" onclick="confirmRes()">CONFIRM</button>
+  </div>
+</div>
+</div>
+
+<!-- OKW -->
+<div class="moverlay" id="okw-modal">
+<div class="modal okw-modal">
+  <h2 id="okw-title">⚑ OKW ORDER</h2>
+  <div class="msub" id="okw-sub"></div>
+  <div class="msec"><h4>OKH Assessment</h4><div class="okw-intel" id="okw-intel">Generating...</div></div>
+  <div class="msec"><h4>Order</h4><div id="okw-details" style="font-size:0.61rem;line-height:2;color:var(--paper)"></div></div>
+  <div class="macts">
+    <button class="mbtn no" id="okw-decline-btn" onclick="declineOKW()">DECLINE (2 PC)</button>
+    <button class="mbtn ok" onclick="executeOKW()">EXECUTE</button>
+  </div>
+</div>
+</div>
+
+<!-- Event -->
+<div class="moverlay" id="evt-modal">
+<div class="modal evt-modal">
+  <h2 id="evt-title">⚡ PRIORITY MESSAGE</h2>
+  <div class="msub" id="evt-sub"></div>
+  <div class="evt-body" id="evt-body"></div>
+  <div class="evt-eff" id="evt-eff"></div>
+  <div class="macts" style="margin-top:8px">
+    <button class="mbtn ok" onclick="closeM('evt-modal');applyEvent()">ACKNOWLEDGED</button>
+  </div>
+</div>
+</div>
+
+<!-- Move token -->
+<div class="moverlay" id="move-modal">
+<div class="modal">
+  <h2>REDEPLOY DIVISION</h2>
+  <div class="msub" id="mv-sub"></div>
+  <div class="msec"><h4>Move to (German-held, same front)</h4><div id="mv-opts"></div></div>
+  <div class="macts"><button class="mbtn no" onclick="closeM('move-modal')">CANCEL</button></div>
+</div>
+</div>
+
+<!-- Install PWA banner -->
+<div id="install-banner" class="hidden">
+  <span style="font-size:0.68rem;color:var(--tan)">📲 Install as app for offline play</span>
+  <div style="display:flex;gap:8px">
+    <button onclick="installPWA()" style="background:var(--fg);border:none;color:var(--tan);padding:4px 10px;font-size:0.65rem;cursor:pointer">INSTALL</button>
+    <button onclick="document.getElementById('install-banner').classList.add('hidden')" style="background:transparent;border:none;color:var(--muted);padding:4px 8px;font-size:0.65rem;cursor:pointer">×</button>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+// ═══════════════════════════════════════════════════════════
+// CONSTANTS
+// ═══════════════════════════════════════════════════════════
+const MONTHS=['Jul 1943','Aug 1943','Sep 1943','Oct 1943','Nov 1943','Dec 1943',
+  'Jan 1944','Feb 1944','Mar 1944','Apr 1944','May 1944','Jun 1944',
+  'Jul 1944','Aug 1944','Sep 1944','Oct 1944','Nov 1944','Dec 1944'];
+
+const DB_NAME='FestungEuropa';
+const DB_VERSION=1;
+const STORE_NAME='saves';
+
+// ═══════════════════════════════════════════════════════════
+// TERRITORY DATA
+// ═══════════════════════════════════════════════════════════
+const FRONTS={
+  east:{
+    leningrad:{name:'Leningrad Oblast',ctrl:'de',str:'medium',adj:['pskov','novgorod'],income:5,front:'east',blocks:2,turnsHeld:0,importance:'Northern anchor. Siege must hold.',incentive:'',tx:325,ty:45},
+    pskov:{name:'Pskov',ctrl:'de',str:'weak',adj:['leningrad','smolensk','vitebsk'],income:4,front:'east',blocks:1,turnsHeld:0,importance:'Rail link Army Group North-Centre.',incentive:'',tx:313,ty:105},
+    vitebsk:{name:'Vitebsk',ctrl:'de',str:'medium',adj:['leningrad','pskov','smolensk','minsk'],income:5,front:'east',blocks:2,turnsHeld:0,importance:'Army Group Centre hinge.',incentive:'',tx:415,ty:45},
+    smolensk:{name:'Smolensk',ctrl:'de',str:'medium',adj:['pskov','vitebsk','minsk','bryansk'],income:5,front:'east',blocks:2,turnsHeld:0,importance:'Gateway to Minsk. Critical hub.',incentive:'',tx:300,ty:162},
+    minsk:{name:'Minsk',ctrl:'de',str:'strong',adj:['vitebsk','smolensk','bryansk','kursk'],income:6,front:'east',blocks:3,turnsHeld:0,importance:'Loss collapses Army Group Centre.',incentive:'',tx:400,ty:175},
+    bryansk:{name:'Bryansk',ctrl:'de',str:'medium',adj:['smolensk','minsk','kursk'],income:4,front:'east',blocks:1,turnsHeld:0,importance:'Southern flank of Army Group Centre.',incentive:'',tx:298,ty:232},
+    kursk:{name:'Kursk',ctrl:'de',str:'strong',adj:['bryansk','minsk','kharkov','orel'],income:5,front:'east',blocks:3,turnsHeld:0,importance:'★ Main Soviet pressure point. Hold at all costs.',incentive:'3 turns held: Dnieper bonus.',isKey:true,objId:'obj-kursk',tx:395,ty:268},
+    kharkov:{name:'Kharkov',ctrl:'de',str:'strong',adj:['kursk','stalino','zaporizhzhia','voronezh'],income:6,front:'east',blocks:2,turnsHeld:0,importance:'Industrial city. Changed hands 3 times.',incentive:'3 turns: SO -10, +3 PC.',objId:'obj-kharkov',tx:462,ty:340},
+    stalino:{name:'Stalino',ctrl:'de',str:'medium',adj:['kharkov','zaporizhzhia','crimea'],income:5,front:'east',blocks:1,turnsHeld:0,importance:'Donbas coal and steel.',incentive:'',tx:518,ty:398},
+    zaporizhzhia:{name:'Zaporizhzhia',ctrl:'de',str:'weak',adj:['kharkov','stalino','crimea'],income:4,front:'east',blocks:1,turnsHeld:0,importance:'Dnipro crossing. Protects Crimea.',incentive:'',tx:450,ty:415},
+    crimea:{name:'Crimea',ctrl:'de',str:'medium',adj:['zaporizhzhia','stalino'],income:4,front:'east',blocks:1,turnsHeld:0,importance:'Sevastopol naval base.',incentive:'',tx:462,ty:485},
+    'leningrad-city':{name:'Leningrad',ctrl:'so',str:'strong',adj:['leningrad','novgorod'],income:4,front:'east',blocks:0,turnsHeld:0,importance:'Breaking siege devastates Soviet morale.',incentive:'If taken: SO -20, DE +20.',isObj:true,tx:242,ty:24},
+    moscow:{name:'Moscow',ctrl:'so',str:'strong',adj:['smolensk','minsk','orel'],income:4,front:'east',blocks:0,turnsHeld:0,importance:'★ Taking Moscow ends the eastern war.',incentive:'Campaign victory.',isObj:true,tx:492,ty:118},
+    orel:{name:'Orel',ctrl:'so',str:'strong',adj:['kursk','moscow','voronezh','bryansk'],income:4,front:'east',blocks:0,turnsHeld:0,importance:'Soviet staging area opposite Kursk.',incentive:'',tx:488,ty:238},
+    voronezh:{name:'Voronezh',ctrl:'so',str:'medium',adj:['kursk','kharkov','orel','stalingrad'],income:4,front:'east',blocks:0,turnsHeld:0,importance:'Don river line.',incentive:'',tx:482,ty:308},
+    stalingrad:{name:'Stalingrad',ctrl:'so',str:'strong',adj:['stalino','voronezh','caucasus'],income:4,front:'east',blocks:0,turnsHeld:0,importance:'Site of the catastrophe.',incentive:'',tx:568,ty:388},
+    caucasus:{name:'Caucasus',ctrl:'so',str:'weak',adj:['stalingrad','crimea'],income:4,front:'east',blocks:0,turnsHeld:0,importance:'Oil fields. If taken: +20 income/turn.',incentive:'',tx:525,ty:460},
+    novgorod:{name:'Novgorod',ctrl:'so',str:'weak',adj:['leningrad-city','leningrad'],income:4,front:'east',blocks:0,turnsHeld:0,importance:'Northern flank.',incentive:'',tx:238,ty:48},
+    kalinin:{name:'Kalinin',ctrl:'so',str:'weak',adj:['leningrad','moscow'],income:4,front:'east',blocks:0,turnsHeld:0,importance:'Northwest approach to Moscow.',incentive:'',tx:418,ty:38},
+  },
+  italy:{
+    lombardy:{name:'Lombardy',ctrl:'de',str:'weak',adj:['venice','tuscany'],income:4,front:'italy',blocks:1,turnsHeld:0,importance:'Industrial north. Safe for now.',incentive:'',tx:250,ty:82},
+    venice:{name:'Venezia',ctrl:'de',str:'weak',adj:['lombardy','tuscany'],income:4,front:'italy',blocks:1,turnsHeld:0,importance:'Alpine supply routes.',incentive:'',tx:448,ty:78},
+    tuscany:{name:'Tuscany',ctrl:'de',str:'medium',adj:['lombardy','venice','rome-n','umbria'],income:5,front:'italy',blocks:1,turnsHeld:0,importance:'Supply lines to south.',incentive:'',tx:248,ty:158},
+    'rome-n':{name:'Rome',ctrl:'de',str:'strong',adj:['tuscany','umbria','naples-n'],income:5,front:'italy',blocks:2,turnsHeld:0,importance:'★ Rome must not fall.',incentive:'3 turns: WA -8, +3 PC.',isObj:true,objId:'obj-rome',tx:298,ty:252},
+    umbria:{name:'Umbria',ctrl:'de',str:'medium',adj:['tuscany','rome-n','naples-n','cassino'],income:4,front:'italy',blocks:1,turnsHeld:0,importance:'Apennines. Natural defence.',incentive:'',tx:360,ty:218},
+    'naples-n':{name:'Naples North',ctrl:'de',str:'strong',adj:['rome-n','umbria','cassino','salerno'],income:4,front:'italy',blocks:2,turnsHeld:0,importance:'Gustav Line anchor.',incentive:'',tx:312,ty:340},
+    cassino:{name:'Monte Cassino',ctrl:'de',str:'strong',adj:['naples-n','umbria','salerno'],income:4,front:'italy',blocks:2,turnsHeld:0,importance:'★ Keystone of the Gustav Line.',incentive:'4 turns: WA -15, stalemate bonus.',isKey:true,objId:'obj-cassino',tx:382,ty:322},
+    salerno:{name:'Salerno',ctrl:'al',str:'medium',adj:['naples-n','cassino','calabria'],income:4,front:'italy',blocks:0,turnsHeld:0,importance:'Allied beachhead.',incentive:'',tx:298,ty:405},
+    calabria:{name:'Calabria',ctrl:'al',str:'weak',adj:['salerno','sicily'],income:4,front:'italy',blocks:0,turnsHeld:0,importance:'Allied staging ground.',incentive:'',tx:335,ty:455},
+    sicily:{name:'Sicily',ctrl:'al',str:'strong',adj:['calabria'],income:4,front:'italy',blocks:0,turnsHeld:0,importance:'Allied landing zone.',incentive:'',tx:318,ty:510},
+  },
+  west:{
+    norway:{name:'Norway',ctrl:'de',str:'weak',adj:['denmark'],income:4,front:'west',blocks:1,turnsHeld:0,importance:'Northern flank.',incentive:'',tx:368,ty:50},
+    denmark:{name:'Denmark',ctrl:'de',str:'weak',adj:['norway','netherlands','rhine'],income:4,front:'west',blocks:1,turnsHeld:0,importance:'Baltic access.',incentive:'',tx:362,ty:120},
+    netherlands:{name:'Netherlands',ctrl:'de',str:'medium',adj:['denmark','belgium','rhine','ruhr'],income:5,front:'west',blocks:1,turnsHeld:0,importance:'V-weapon sites.',incentive:'',tx:238,ty:148},
+    ruhr:{name:'Ruhr Industrial',ctrl:'de',str:'strong',adj:['netherlands','belgium','rhine','alsace'],income:7,front:'west',blocks:2,turnsHeld:0,importance:'★ Heart of German industry.',incentive:'6 turns: +15 income permanently.',isObj:true,objId:'obj-ruhr',tx:372,ty:148},
+    rhine:{name:'Rhine Frontier',ctrl:'de',str:'strong',adj:['netherlands','denmark','ruhr','alsace'],income:6,front:'west',blocks:2,turnsHeld:0,importance:'Last line before the Fatherland.',incentive:'',tx:475,ty:145},
+    belgium:{name:'Belgium',ctrl:'de',str:'medium',adj:['netherlands','normandy','paris','alsace','ruhr'],income:5,front:'west',blocks:1,turnsHeld:0,importance:'Likely Allied approach.',incentive:'',tx:232,ty:200},
+    alsace:{name:'Alsace-Lorraine',ctrl:'de',str:'medium',adj:['belgium','paris','rhine','ruhr'],income:5,front:'west',blocks:1,turnsHeld:0,importance:'Direct approach to Germany.',incentive:'',tx:375,ty:208},
+    normandy:{name:'Normandy',ctrl:'de',str:'strong',adj:['belgium','paris','brittany'],income:4,front:'west',blocks:2,turnsHeld:0,importance:'★ Most likely D-Day site. Garrison heavily.',incentive:'3+ blocks for 3 turns: D-Day Repelled.',isKey:true,objId:'obj-normandy',tx:138,ty:248},
+    paris:{name:'Paris',ctrl:'de',str:'strong',adj:['normandy','belgium','brittany','loire','alsace'],income:6,front:'west',blocks:2,turnsHeld:0,importance:'★ Cannot fall.',incentive:'5 turns: WA -5, DE +5.',isObj:true,objId:'obj-paris',tx:238,ty:240},
+    brittany:{name:'Brittany',ctrl:'de',str:'medium',adj:['normandy','paris','loire'],income:4,front:'west',blocks:1,turnsHeld:0,importance:'Atlantic ports. U-boat bases.',incentive:'',tx:132,ty:298},
+    loire:{name:'Loire Valley',ctrl:'de',str:'weak',adj:['paris','brittany','bordeaux'],income:4,front:'west',blocks:1,turnsHeld:0,importance:'Reserve staging area.',incentive:'',tx:228,ty:305},
+    bordeaux:{name:'Bordeaux',ctrl:'de',str:'weak',adj:['loire','marseille'],income:4,front:'west',blocks:1,turnsHeld:0,importance:'Atlantic port.',incentive:'',tx:202,ty:368},
+    marseille:{name:'Marseille',ctrl:'de',str:'medium',adj:['bordeaux','alsace'],income:5,front:'west',blocks:1,turnsHeld:0,importance:'Mediterranean coast.',incentive:'',tx:348,ty:365},
+  }
+};
+
+function getT(id){for(const f of Object.values(FRONTS)){if(f[id])return f[id];}return null;}
+
+// ═══════════════════════════════════════════════════════════
+// UNITS
+// ═══════════════════════════════════════════════════════════
+const UNITS=[
+  {n:'Panzer II F',c:8,cat:'lt'},{n:'Luchs',c:10,cat:'lt'},{n:'Panzer III K',c:14,cat:'lt'},{n:'Panzer III N',c:13,cat:'lt'},
+  {n:'Panzer IV F',c:22,cat:'mt'},{n:'Panzer IV H',c:24,cat:'mt'},{n:'Panzer IV S',c:20,cat:'mt'},{n:'Panther A',c:38,cat:'mt'},{n:'Panther G',c:36,cat:'mt'},
+  {n:'Tiger I',c:48,cat:'ht'},{n:'King Tiger',c:58,cat:'ht'},{n:'VK3001h',c:32,cat:'ht'},
+  {n:'SdKfz 251/1',c:9,cat:'htc'},{n:'SdKfz 251/9',c:11,cat:'htc'},{n:'SdKfz 250',c:7,cat:'htc'},
+  {n:'Puma 234/2',c:12,cat:'ac'},{n:'SdKfz 234/1',c:9,cat:'ac'},
+  {n:'Kuebelwagen',c:4,cat:'lv'},{n:'BMW-R75',c:4,cat:'lv'},{n:'Kettenkrad',c:3,cat:'lv'},{n:'Opel Truck',c:5,cat:'lv'},
+  {n:'StuG III G',c:18,cat:'td'},{n:'StuG IV',c:20,cat:'td'},{n:'StuH 42',c:16,cat:'td'},{n:'Jagdpanzer IV',c:22,cat:'td'},
+  {n:'Hetzer',c:14,cat:'td'},{n:'Marder II',c:12,cat:'td'},{n:'Marder III',c:13,cat:'td'},{n:'Jagdpanther',c:38,cat:'td'},
+  {n:'Jagdtiger',c:52,cat:'td'},{n:'Elefant',c:44,cat:'td'},{n:'Nashorn',c:20,cat:'td'},{n:'Sturmtiger',c:36,cat:'td'},
+  {n:'Wespe',c:14,cat:'spg'},{n:'Hummel',c:18,cat:'spg'},{n:'Grille K',c:12,cat:'spg'},{n:'Wirbelwind',c:16,cat:'spg'},
+  {n:'Infantry',c:8,cat:'inf'},{n:'Grenadiers',c:10,cat:'inf'},{n:'Panzergrenadiers',c:12,cat:'inf'},{n:'Volksgrenadiers',c:7,cat:'inf'},
+  {n:'Sturmgruppen',c:14,cat:'inf'},{n:'Gebirgsjaegers',c:13,cat:'inf'},{n:'Waffen SS',c:16,cat:'inf'},
+  {n:'SS Grenadiers',c:14,cat:'inf'},{n:'Pioneer',c:11,cat:'inf'},{n:'Volkssturm',c:5,cat:'inf'},
+  {n:'Panzerschreck',c:6,cat:'sup'},{n:'HMG Team',c:7,cat:'sup'},{n:'Light Mortar',c:5,cat:'sup'},
+  {n:'Medium Mortar',c:8,cat:'sup'},{n:'Heavy Mortar',c:10,cat:'sup'},{n:'Flamethrower',c:8,cat:'sup'},
+  {n:'7.5cm Pak 40',c:9,cat:'at'},{n:'8.8cm Pak 43',c:16,cat:'at'},{n:'5.0cm Pak 38',c:7,cat:'at'},
+  {n:'8.8cm Flak 36',c:14,cat:'at'},{n:'2cm Flak 38',c:6,cat:'at'},
+  {n:'10.5cm leFH 18',c:12,cat:'arty'},{n:'15cm sFH 18',c:16,cat:'arty'},{n:'15cm sIG 33',c:14,cat:'arty'},
+];
+const UMAP={};UNITS.forEach(u=>{if(!UMAP[u.n])UMAP[u.n]=u;});
+const UR=Object.values(UMAP);
+
+// ═══════════════════════════════════════════════════════════
+// FIRE BRIGADES
+// ═══════════════════════════════════════════════════════════
+const SU=[
+  {id:'lssah',name:'LSSAH',sym:'SS',color:'#c8a020',loc:'kharkov',front:'east',hp:3,maxhp:3,destroyed:false,desc:'1st SS Panzer. Free Tiger I + Waffen SS.'},
+  {id:'dr',name:'Das Reich',sym:'DR',color:'#8a6020',loc:'kursk',front:'east',hp:3,maxhp:3,destroyed:false,desc:'2nd SS Panzer. Free Panther + SS Grenadiers.'},
+  {id:'gd',name:'Grossdeutschland',sym:'GD',color:'#4a8a4a',loc:'smolensk',front:'east',hp:2,maxhp:2,destroyed:false,desc:'Army elite. Moves 2 territories.'},
+  {id:'hj',name:'12th SS HJ',sym:'HJ',color:'#3a5a8a',loc:'paris',front:'west',hp:2,maxhp:2,destroyed:false,desc:'Reserve Panzer. Free Panther + SS Grenadiers.'},
+  {id:'para',name:'Fallschirmjaeger',sym:'FJ',color:'#2a6a4a',loc:'cassino',front:'italy',hp:2,maxhp:2,destroyed:false,desc:'Airborne infantry. Free Sturmgruppen x2.'},
+];
+
+// ═══════════════════════════════════════════════════════════
+// OBJECTIVES
+// ═══════════════════════════════════════════════════════════
+const OBJECTIVES=[
+  {id:'obj-kursk',name:'Hold Kursk Line',target:'kursk',turns:3,progress:0,completed:false,reward:'Dnieper bonus: +1 block Kharkov/Stalino, DE +5.'},
+  {id:'obj-kharkov',name:'Defend Kharkov',target:'kharkov',turns:3,progress:0,completed:false,reward:'SO -10, +3 PC, +10 manpower.'},
+  {id:'obj-cassino',name:'Gustav Line',target:'cassino',turns:4,progress:0,completed:false,reward:'WA -15. Italy stalemate: +5 income/turn.'},
+  {id:'obj-rome',name:'Defend Rome',target:'rome-n',turns:3,progress:0,completed:false,reward:'WA -8, +3 PC, DE +10.'},
+  {id:'obj-normandy',name:'Atlantic Wall',target:'normandy',turns:3,progress:0,completed:false,reward:'D-Day Repelled. WA -15.'},
+  {id:'obj-paris',name:'Occupied Paris',target:'paris',turns:5,progress:0,completed:false,reward:'WA -5/turn, DE +5.'},
+  {id:'obj-ruhr',name:'Industrial Heart',target:'ruhr',turns:6,progress:0,completed:false,reward:'+15 income/turn permanently.'},
+];
+
+// ═══════════════════════════════════════════════════════════
+// GAME STATE
+// ═══════════════════════════════════════════════════════════
+let G={
+  pool:480,turn:1,month:0,currentFront:'east',sel:null,
+  deSupport:72,soSupport:78,waSupport:70,pc:0,
+  phase:'manage',currentAttacks:[],chosenAttack:null,
+  pending:null,res:null,
+  okwPressure:{east:0,italy:0,west:0},
+  pendingOKW:null,pendingEventFn:null,
+  objectives:JSON.parse(JSON.stringify(OBJECTIVES)),
+};
+
+// ═══════════════════════════════════════════════════════════
+// INDEXEDDB SAVE SYSTEM
+// ═══════════════════════════════════════════════════════════
+let db=null;
+
+function openDB(){
+  return new Promise((resolve,reject)=>{
+    const req=indexedDB.open(DB_NAME,DB_VERSION);
+    req.onupgradeneeded=e=>{
+      const d=e.target.result;
+      if(!d.objectStoreNames.contains(STORE_NAME))
+        d.createObjectStore(STORE_NAME,{keyPath:'slot'});
+    };
+    req.onsuccess=e=>{db=e.target.result;resolve(db);};
+    req.onerror=e=>reject(e);
+  });
+}
+
+function saveGame(){
+  const state={
+    slot:'autosave',
+    turn:G.turn,
+    date:MONTHS[Math.min(G.month,MONTHS.length-1)],
+    G:JSON.parse(JSON.stringify(G)),
+    FRONTS_STATE:serializeFronts(),
+    SU_STATE:SU.map(s=>({...s})),
+  };
+  if(db){
+    const tx=db.transaction(STORE_NAME,'readwrite');
+    tx.objectStore(STORE_NAME).put(state);
+    tx.oncomplete=()=>addLog('Game saved to browser storage.','good');
+    tx.onerror=()=>fallbackSave(state);
+  } else {
+    fallbackSave(state);
+  }
+}
+
+function fallbackSave(state){
+  // Fallback: localStorage
+  try{
+    localStorage.setItem('festung_save',JSON.stringify(state));
+    addLog('Game saved (localStorage).','good');
+  } catch(e){
+    addLog('Save failed — storage full?','enemy');
+  }
+}
+
+function loadGame(){
+  if(db){
+    const tx=db.transaction(STORE_NAME,'readonly');
+    const req=tx.objectStore(STORE_NAME).get('autosave');
+    req.onsuccess=e=>{
+      if(e.target.result)applyLoad(e.target.result);
+      else tryLocalStorage();
+    };
+    req.onerror=()=>tryLocalStorage();
+  } else tryLocalStorage();
+}
+
+function tryLocalStorage(){
+  try{
+    const raw=localStorage.getItem('festung_save');
+    if(raw)applyLoad(JSON.parse(raw));
+  } catch(e){}
+}
+
+function applyLoad(saved){
+  // Sanity check income - if pool is huge something is wrong
+  if(saved.G && saved.G.pool > 2000) {
+    console.log('Save data looks corrupt, starting fresh');
+    return;
+  }
+  try{
+    Object.assign(G,saved.G);
+    Object.entries(saved.FRONTS_STATE).forEach(([fn,fd])=>{
+      Object.entries(fd).forEach(([tid,state])=>{
+        if(FRONTS[fn]&&FRONTS[fn][tid])Object.assign(FRONTS[fn][tid],state);
+      });
+    });
+    saved.SU_STATE.forEach(sv=>{
+      const su=SU.find(s=>s.id===sv.id);if(su)Object.assign(su,sv);
+    });
+    refreshMapStyles();
+    updateTop();
+    addLog(`Save loaded — Turn ${G.turn} · ${MONTHS[Math.min(G.month,MONTHS.length-1)]}. Welcome back.`,'good');
+  } catch(e){console.error('Load error:',e);}
+}
+
+function serializeFronts(){
+  const out={};
+  Object.entries(FRONTS).forEach(([fn,fd])=>{
+    out[fn]={};
+    Object.entries(fd).forEach(([tid,t])=>{
+      out[fn][tid]={ctrl:t.ctrl,blocks:t.blocks,turnsHeld:t.turnsHeld,income:t.income,str:t.str};
+    });
+  });
+  return out;
+}
+
+// ═══════════════════════════════════════════════════════════
+// LEAFLET MAP ENGINE
+// ═══════════════════════════════════════════════════════════
+const MAPS = {};
+const GEO_LAYERS = {}; // front -> {tid -> L.geoJSON layer}
+const BLK_MARKERS = {}; // front_tid -> L.marker
+const SU_MARKERS_MAP = {}; // su.id -> L.marker
+
+// Territory GeoJSON — real Natural Earth 10m boundaries
+const GEO = {"leningrad":{"type":"Polygon","coordinates":[[[28.004,60.664],[28.75,61.061],[29.37,61.283],[29.576,61.171],[33.106,60.746],[33.15,60.82],[33.253,60.899],[33.416,60.999],[33.763,60.95],[33.866,61.088],[33.637,61.079],[33.444,61.145],[34.344,61.198],[34.453,61.163],[34.454,61.221],[34.808,61.281],[35.358,61.26],[35.679,61.152],[35.513,60.984],[35.232,60.833],[35.195,60.731],[35.252,60.458],[35.144,60.154],[35.157,60.067],[35.214,59.994],[35.445,59.945],[35.385,59.797],[35.607,59.712],[35.619,59.629],[35.498,59.635],[35.451,59.518],[35.324,59.507],[35.387,59.461],[35.351,59.358],[35.389,59.308],[35.038,59.251],[34.842,59.171],[34.554,59.109],[34.366,59.178],[34.143,59.175],[33.968,59.156],[33.876,59.2],[33.725,59.298],[33.354,59.378],[33.234,59.338],[32.955,59.422],[32.737,59.272],[32.706,59.142],[32.447,59.195],[32.29,59.213],[32.264,59.289],[32.158,59.354],[31.987,59.375],[31.82,59.313],[31.532,59.353],[31.53,59.258],[31.514,59.203],[31.46,59.101],[31.313,59.0],[31.155,59.077],[30.979,59.017],[30.722,58.814],[30.468,58.727],[30.297,58.743],[30.104,58.735],[30.09,58.631],[30.167,58.533],[30.127,58.494],[29.701,58.456],[29.54,58.505],[29.493,58.541],[29.264,58.635],[29.107,58.731],[28.979,58.812],[28.212,58.895],[27.966,59.002],[27.767,59.056],[28.032,59.342],[28.019,59.482],[28.124,59.792],[28.428,59.813],[28.684,59.809],[28.919,59.814],[29.089,59.98],[29.94,59.771],[30.671,59.693],[30.321,60.139],[29.052,60.184],[28.795,60.348],[28.453,60.565],[28.707,60.478],[28.655,60.682],[28.521,60.684],[28.338,60.61],[28.216,60.548],[28.08,60.537],[27.893,60.604],[28.004,60.664]]]},"pskov":{"type":"Polygon","coordinates":[[[27.694,57.356],[27.328,57.583],[27.377,57.657],[27.554,57.795],[27.665,57.918],[27.54,58.172],[27.605,58.935],[27.974,59.003],[28.249,58.873],[28.979,58.806],[29.232,58.706],[29.254,58.633],[29.5,58.538],[29.531,58.5],[29.715,58.455],[29.782,58.309],[29.681,58.073],[29.858,58.057],[29.993,58.04],[29.92,57.959],[30.543,57.876],[30.502,57.798],[30.519,57.736],[30.49,57.483],[30.465,57.343],[30.728,57.213],[30.67,57.144],[30.645,57.0],[30.83,56.938],[30.964,56.908],[30.903,56.841],[30.781,56.774],[30.815,56.728],[30.929,56.678],[31.041,56.684],[31.069,56.6],[31.144,56.451],[31.231,56.346],[31.317,56.323],[31.474,56.125],[31.507,56.061],[31.423,55.993],[31.467,55.729],[31.326,55.723],[31.199,55.722],[31.008,55.691],[30.907,55.578],[30.596,55.665],[30.477,55.788],[29.869,55.831],[29.351,55.766],[29.434,55.9],[29.031,56.024],[28.69,56.004],[28.29,56.047],[28.217,56.271],[28.125,56.527],[27.876,56.759],[27.649,56.879],[27.701,57.119],[27.694,57.356]]]},"vitebsk":{"type":"Polygon","coordinates":[[[26.542,55.308],[26.528,55.492],[26.72,55.682],[27.263,55.787],[27.645,55.923],[27.981,56.118],[28.367,56.079],[28.732,55.947],[29.193,55.992],[29.408,55.894],[29.461,55.687],[29.988,55.847],[30.469,55.763],[30.68,55.656],[30.899,55.499],[30.811,55.323],[30.957,55.15],[30.981,55.086],[30.899,54.946],[30.827,54.771],[31.168,54.467],[31.049,54.427],[30.967,54.424],[30.897,54.406],[30.657,54.399],[30.615,54.349],[30.556,54.298],[30.417,54.345],[30.266,54.311],[30.31,54.377],[30.176,54.338],[30.106,54.376],[30.024,54.325],[30.025,54.272],[29.901,54.304],[29.822,54.341],[29.669,54.3],[29.484,54.278],[29.355,54.244],[29.388,54.333],[29.398,54.375],[29.455,54.526],[29.46,54.618],[29.399,54.586],[29.227,54.583],[29.15,54.63],[29.094,54.639],[28.872,54.619],[28.855,54.556],[28.756,54.581],[28.648,54.611],[28.595,54.635],[28.475,54.639],[28.342,54.575],[28.234,54.648],[27.909,54.614],[27.846,54.632],[27.699,54.686],[27.527,54.775],[27.424,54.866],[27.311,54.899],[27.272,54.987],[27.079,54.965],[26.905,54.974],[26.688,54.969],[26.554,54.957],[26.362,54.967],[26.285,54.93],[26.225,55.055],[26.459,55.145],[26.766,55.247],[26.542,55.308]]]},"smolensk":{"type":"Polygon","coordinates":[[[30.981,55.019],[30.975,55.14],[30.821,55.264],[30.887,55.468],[30.953,55.66],[31.037,55.708],[31.265,55.734],[31.413,55.733],[31.691,55.729],[31.929,55.768],[32.041,55.687],[32.211,55.672],[32.387,55.699],[32.576,55.665],[32.755,55.677],[32.989,55.655],[33.205,55.678],[33.411,55.73],[33.585,55.824],[33.67,55.947],[33.845,56.008],[34.201,56.075],[34.353,56.008],[34.76,55.968],[35.207,55.938],[35.24,55.915],[35.294,55.839],[35.347,55.769],[35.314,55.711],[35.374,55.646],[35.303,55.571],[35.32,55.499],[35.314,55.432],[35.37,55.239],[35.307,55.159],[35.284,55.112],[35.146,54.981],[35.027,54.928],[34.863,54.879],[34.868,54.808],[34.844,54.733],[34.627,54.664],[34.411,54.678],[34.483,54.617],[34.436,54.512],[34.409,54.442],[34.103,54.549],[33.839,54.562],[33.684,54.51],[33.653,54.465],[33.631,54.4],[33.646,54.284],[33.591,54.246],[33.619,54.196],[33.555,54.125],[33.512,54.09],[33.434,54.038],[33.445,53.997],[33.388,53.954],[33.343,53.981],[33.25,53.945],[33.247,53.881],[33.283,53.833],[33.213,53.769],[33.057,53.676],[32.906,53.508],[32.805,53.438],[32.689,53.462],[32.57,53.492],[32.481,53.662],[32.165,53.782],[31.84,53.977],[31.748,54.086],[31.292,54.331],[31.09,54.536],[30.763,54.802],[30.931,54.985],[30.981,55.019]]]},"minsk":{"type":"Polygon","coordinates":[[[27.106,55.002],[28.642,54.657],[29.375,54.352],[29.402,53.754],[28.57,53.529],[28.487,52.944],[27.157,52.448],[26.512,53.05],[26.218,53.866],[26.583,54.651],[27.688,53.989],[27.106,55.002]]]},"bryansk":{"type":"Polygon","coordinates":[[[32.698,53.326],[32.805,53.438],[32.906,53.508],[33.057,53.676],[33.213,53.769],[33.283,53.833],[33.247,53.881],[33.25,53.945],[33.343,53.981],[33.388,53.954],[33.445,53.997],[33.656,54.032],[33.854,53.882],[34.001,53.884],[34.199,53.892],[34.264,53.825],[34.472,53.679],[34.488,53.551],[34.53,53.477],[34.653,53.392],[35.017,53.381],[35.018,53.288],[35.106,53.233],[35.185,53.105],[35.314,53.062],[35.206,53.001],[35.144,53.016],[35.146,52.959],[34.997,52.971],[34.957,52.942],[34.859,52.888],[34.873,52.781],[34.971,52.763],[35.092,52.698],[35.01,52.622],[34.919,52.498],[34.834,52.396],[34.913,52.333],[34.858,52.244],[34.773,52.188],[34.731,52.217],[34.692,52.151],[34.672,52.065],[34.553,52.04],[34.488,52.04],[34.369,51.926],[34.429,51.892],[34.328,51.851],[34.166,51.942],[34.074,52.128],[33.839,52.314],[33.481,52.358],[33.167,52.36],[32.909,52.241],[32.344,52.277],[32.077,52.04],[31.767,52.13],[31.631,52.265],[31.583,52.428],[31.624,52.538],[31.551,52.795],[31.323,52.977],[31.379,53.182],[31.77,53.169],[32.117,53.081],[32.216,53.126],[32.447,53.289],[32.682,53.327],[32.698,53.326]]]},"kursk":{"type":"Polygon","coordinates":[[[34.357,51.706],[34.398,51.881],[34.388,51.919],[34.396,52.008],[34.543,52.059],[34.621,52.052],[34.71,52.134],[34.692,52.207],[34.764,52.196],[34.884,52.234],[34.916,52.316],[35.113,52.332],[35.233,52.385],[35.381,52.375],[35.452,52.404],[35.566,52.43],[35.64,52.328],[35.653,52.248],[35.98,52.308],[36.462,52.284],[36.615,52.206],[36.928,52.098],[37.187,52.079],[37.404,51.928],[37.481,52.009],[37.683,51.975],[37.777,51.962],[37.876,51.918],[38.137,51.929],[38.303,51.924],[38.406,51.925],[38.387,51.785],[38.505,51.732],[38.204,51.696],[38.207,51.629],[38.275,51.531],[38.273,51.453],[38.291,51.364],[38.323,51.341],[38.067,51.355],[38.05,51.387],[37.921,51.417],[37.818,51.419],[37.558,51.384],[37.447,51.372],[37.184,51.33],[37.12,51.309],[37.085,51.247],[36.856,51.186],[36.585,51.088],[36.393,51.122],[36.22,51.121],[35.945,51.127],[35.999,51.053],[35.866,51.0],[35.792,50.939],[35.711,50.953],[35.67,50.918],[35.607,50.933],[35.509,50.929],[35.378,50.952],[35.309,51.047],[34.999,51.202],[34.622,51.225],[34.244,51.274],[34.187,51.408],[34.202,51.546],[34.357,51.706]]]},"kharkov":{"type":"Polygon","coordinates":[[[37.415,50.432],[37.632,50.174],[38.023,49.909],[38.07,49.838],[38.045,49.785],[37.974,49.753],[37.983,49.722],[38.0,49.657],[37.946,49.591],[37.964,49.524],[37.884,49.446],[37.887,49.383],[37.929,49.291],[37.771,49.204],[37.59,49.175],[37.352,49.024],[37.306,48.964],[37.294,48.918],[37.179,48.857],[37.117,48.83],[37.066,48.815],[36.998,48.788],[37.009,48.761],[36.825,48.773],[36.693,48.758],[36.583,48.603],[36.366,48.562],[36.326,48.54],[36.303,48.565],[36.286,48.628],[36.137,48.738],[36.11,48.801],[35.967,48.853],[36.021,48.903],[35.918,48.971],[35.773,48.939],[35.613,48.96],[35.47,48.974],[35.284,49.077],[35.097,49.157],[34.987,49.189],[35.029,49.319],[35.21,49.294],[35.351,49.427],[35.327,49.485],[35.465,49.494],[35.398,49.555],[35.417,49.659],[35.37,49.682],[35.249,49.699],[35.191,49.775],[35.138,49.854],[34.949,49.892],[34.864,49.942],[34.908,50.146],[35.016,50.172],[35.067,50.215],[35.148,50.244],[35.25,50.257],[35.309,50.283],[35.389,50.296],[35.503,50.3],[35.588,50.325],[35.692,50.344],[35.932,50.43],[36.4,50.307],[36.535,50.22],[36.98,50.342],[37.415,50.432]]]},"stalino":{"type":"Polygon","coordinates":[[[39.036,47.857],[38.606,47.645],[38.191,47.317],[38.223,47.215],[38.072,47.1],[37.546,47.082],[37.047,46.878],[37.057,46.959],[37.094,47.0],[37.071,47.058],[36.983,47.117],[36.864,47.199],[36.914,47.284],[36.967,47.298],[37.074,47.319],[37.119,47.372],[37.164,47.346],[37.185,47.388],[37.194,47.459],[36.995,47.547],[36.798,47.61],[36.727,47.641],[36.715,47.681],[36.606,47.786],[36.531,47.891],[36.629,47.92],[36.581,47.965],[36.603,48.082],[36.751,48.053],[36.891,48.093],[36.905,48.181],[36.907,48.284],[36.854,48.319],[36.819,48.357],[36.835,48.445],[36.854,48.517],[36.879,48.581],[36.755,48.529],[36.785,48.592],[36.729,48.613],[36.697,48.786],[36.866,48.797],[37.032,48.764],[37.013,48.81],[37.074,48.836],[37.134,48.822],[37.2,48.871],[37.314,48.93],[37.291,48.976],[37.369,49.049],[37.514,49.18],[37.842,49.214],[37.924,49.204],[37.887,49.16],[38.067,49.15],[38.044,49.073],[38.049,48.988],[38.009,48.961],[38.213,48.913],[38.282,48.835],[38.27,48.749],[38.305,48.719],[38.256,48.623],[38.26,48.548],[38.312,48.5],[38.34,48.439],[38.417,48.424],[38.482,48.348],[38.41,48.318],[38.581,48.257],[38.63,48.166],[38.8,48.057],[39.036,47.943],[39.036,47.857]]]},"zaporizhzhia":{"type":"Polygon","coordinates":[[[35.827,46.623],[35.285,46.259],[35.259,46.373],[35.167,46.493],[35.069,46.3],[35.029,46.465],[34.858,46.498],[34.863,46.54],[34.723,46.596],[34.738,46.654],[34.635,46.686],[34.679,46.721],[34.731,46.766],[34.794,46.827],[34.743,46.882],[34.608,46.959],[34.56,47.012],[34.498,47.149],[34.503,47.234],[34.48,47.294],[34.42,47.31],[34.379,47.273],[34.294,47.279],[34.73,47.539],[34.926,47.577],[34.945,47.743],[34.888,47.787],[34.818,47.867],[34.897,47.931],[34.857,47.978],[34.823,48.009],[34.845,48.073],[34.863,48.122],[34.943,48.081],[35.129,48.128],[35.522,48.079],[35.7,48.12],[35.829,48.067],[35.966,48.056],[36.045,48.043],[36.027,48.001],[36.068,47.949],[36.114,47.926],[36.083,47.868],[36.076,47.848],[36.181,47.86],[36.219,47.829],[36.336,47.831],[36.577,47.803],[36.689,47.716],[36.72,47.658],[36.752,47.602],[36.937,47.571],[37.144,47.461],[37.2,47.413],[37.179,47.351],[37.131,47.372],[37.079,47.33],[36.977,47.291],[36.919,47.301],[36.932,47.205],[36.959,47.142],[37.061,47.054],[37.106,47.011],[37.072,46.96],[37.01,46.915],[36.83,46.732],[36.794,46.729],[36.524,46.759],[36.248,46.619],[36.189,46.669],[35.827,46.623]]]},"crimea":{"type":"Polygon","coordinates":[[[33.629,46.125],[34.026,46.116],[34.411,45.988],[34.784,45.899],[35.481,45.298],[35.795,45.431],[36.022,45.368],[36.299,45.443],[36.549,45.412],[36.522,45.35],[36.426,45.252],[36.258,45.039],[35.917,45.001],[35.47,45.101],[35.374,44.998],[35.172,44.907],[34.93,44.836],[34.533,44.753],[34.331,44.545],[34.182,44.493],[33.84,44.401],[33.769,44.556],[33.598,44.859],[33.537,45.117],[33.158,45.207],[32.729,45.361],[32.644,45.522],[32.814,45.559],[33.181,45.755],[33.38,45.803],[33.61,45.881],[33.709,45.91],[33.638,45.968],[33.644,46.105],[33.629,46.125]]]},"moscow":{"type":"Polygon","coordinates":[[[37.12,54.991],[37.081,55.1],[37.033,55.131],[36.946,55.196],[36.914,55.426],[37.414,55.66],[37.375,55.923],[37.726,55.872],[37.84,55.717],[37.566,55.358],[37.284,55.149],[37.302,55.997],[37.154,55.697],[37.081,55.743],[37.12,54.991]]]},"orel":{"type":"Polygon","coordinates":[[[37.841,53.009],[37.839,52.881],[37.802,52.833],[37.868,52.768],[37.786,52.707],[37.794,52.636],[37.764,52.575],[37.792,52.544],[37.807,52.505],[37.911,52.473],[37.883,52.427],[38.002,52.375],[38.016,52.307],[37.96,52.248],[37.81,52.184],[37.652,51.971],[37.466,52.0],[37.354,51.936],[37.144,52.073],[36.82,52.12],[36.574,52.21],[36.43,52.318],[35.961,52.299],[35.624,52.25],[35.591,52.362],[35.549,52.433],[35.447,52.41],[35.375,52.365],[35.198,52.37],[35.057,52.331],[34.857,52.364],[34.887,52.475],[34.995,52.52],[34.997,52.658],[35.028,52.747],[34.905,52.79],[34.8,52.866],[34.906,52.929],[34.967,52.97],[35.058,52.959],[35.135,53.001],[35.167,52.999],[35.287,53.038],[35.209,53.118],[35.105,53.157],[35.111,53.287],[35.235,53.288],[35.28,53.323],[35.366,53.31],[35.418,53.391],[35.448,53.438],[35.603,53.512],[35.705,53.523],[35.799,53.548],[35.907,53.633],[36.056,53.579],[36.265,53.55],[36.49,53.402],[36.626,53.424],[36.781,53.304],[37.145,53.262],[37.412,53.306],[37.566,53.266],[37.703,53.135],[37.841,53.009]]]},"voronezh":{"type":"Polygon","coordinates":[[[39.328,49.726],[39.204,49.937],[39.265,50.039],[39.188,50.105],[39.114,50.181],[39.108,50.275],[39.075,50.329],[38.99,50.433],[39.087,50.499],[39.067,50.598],[39.018,50.644],[38.896,50.686],[38.792,50.733],[38.797,50.778],[38.725,50.819],[38.737,50.867],[38.824,50.9],[38.856,50.99],[38.734,51.073],[38.652,51.014],[38.516,51.062],[38.395,51.087],[38.459,51.159],[38.452,51.235],[38.308,51.273],[38.337,51.354],[38.283,51.379],[38.285,51.474],[38.236,51.544],[38.215,51.66],[38.22,51.708],[38.475,51.745],[38.425,51.831],[38.362,51.93],[38.385,52.0],[38.592,52.06],[38.681,52.098],[38.762,52.052],[38.93,52.06],[39.101,52.015],[39.265,52.105],[39.479,52.065],[39.495,51.986],[39.88,51.953],[39.965,51.965],[40.149,51.969],[40.767,51.906],[40.938,51.89],[40.888,51.747],[41.126,51.731],[41.291,51.792],[41.492,51.801],[41.698,51.738],[41.851,51.699],[42.081,51.649],[42.155,51.717],[42.259,51.649],[42.403,51.633],[42.864,51.376],[42.905,51.244],[42.367,51.157],[41.831,51.166],[41.382,50.868],[41.34,50.71],[41.524,50.579],[41.421,50.486],[41.347,50.115],[41.124,49.984],[40.867,49.689],[40.522,49.602],[40.018,49.608],[39.623,49.613],[39.328,49.726]]]},"stalingrad":{"type":"Polygon","coordinates":[[[47.434,50.377],[47.273,50.158],[46.979,49.244],[46.62,48.67],[45.958,48.844],[45.748,48.66],[45.504,48.574],[45.247,48.556],[45.247,48.497],[45.353,48.48],[45.323,48.43],[45.177,48.447],[45.03,48.383],[44.984,48.281],[45.248,48.168],[45.11,48.127],[44.941,48.144],[44.61,48.06],[44.541,48.185],[44.426,48.234],[44.311,48.258],[44.448,48.05],[44.389,47.868],[43.964,47.76],[43.729,47.703],[43.673,47.449],[43.209,47.453],[43.153,47.567],[42.964,47.51],[42.554,47.965],[42.283,48.016],[42.051,48.126],[42.059,48.222],[42.143,48.282],[42.165,48.464],[42.458,48.506],[42.629,48.548],[42.7,48.612],[42.698,48.757],[42.661,48.913],[42.385,49.061],[42.277,49.159],[42.069,49.212],[42.093,49.296],[42.072,49.502],[42.142,49.617],[41.907,49.872],[41.595,50.045],[41.5,50.407],[41.467,50.557],[41.4,50.625],[41.379,50.836],[41.781,51.081],[42.283,51.133],[42.844,51.236],[43.48,51.043],[43.665,51.106],[43.896,51.143],[44.009,51.16],[44.05,51.098],[44.155,51.092],[44.446,51.212],[44.597,51.134],[44.756,51.15],[44.983,51.126],[45.111,51.076],[45.21,50.968],[45.313,50.848],[45.185,50.726],[45.256,50.673],[45.241,50.586],[45.514,50.603],[45.674,50.597],[45.686,50.737],[46.039,50.683],[46.094,50.526],[46.346,50.569],[46.477,50.569],[46.561,50.632],[46.738,50.673],[46.802,50.599],[46.917,50.506],[47.052,50.507],[47.213,50.438],[47.434,50.377]]]},"caucasus":{"type":"Polygon","coordinates":[[[40.52,43.505],[39.91,43.426],[39.675,43.623],[39.012,44.1],[38.595,44.332],[38.045,44.561],[37.875,44.689],[37.71,44.642],[37.464,44.69],[37.192,44.991],[36.742,45.103],[36.73,45.206],[36.97,45.303],[36.795,45.325],[36.782,45.388],[36.862,45.432],[37.107,45.272],[37.245,45.268],[37.37,45.322],[37.543,45.347],[37.61,45.297],[37.729,45.302],[37.717,45.358],[37.718,45.427],[37.7,45.563],[37.662,45.559],[37.653,45.504],[37.594,45.509],[37.671,45.61],[37.764,45.725],[38.091,46.06],[38.042,45.961],[38.06,45.827],[38.163,46.06],[38.446,46.034],[38.557,46.115],[37.975,46.394],[37.777,46.587],[37.882,46.629],[38.272,46.732],[38.553,46.717],[38.396,46.775],[38.674,46.863],[38.91,46.812],[38.877,46.726],[38.844,46.659],[39.021,46.617],[39.176,46.684],[39.243,46.723],[39.419,46.793],[39.567,46.786],[39.795,46.788],[40.109,46.696],[40.04,46.562],[40.234,46.46],[40.234,46.358],[40.339,46.28],[40.93,46.271],[40.959,46.19],[41.081,46.088],[41.16,46.0],[41.258,45.861],[41.28,45.765],[41.169,45.695],[40.984,45.697],[40.908,45.504],[40.999,45.341],[41.032,45.233],[41.347,45.122],[41.657,44.969],[41.51,44.723],[41.474,44.632],[41.573,44.537],[41.724,44.492],[41.627,44.407],[41.7,44.316],[41.624,44.114],[41.476,44.028],[41.372,44.003],[41.337,44.025],[41.299,44.049],[41.153,44.093],[40.906,44.141],[40.93,44.021],[40.869,43.963],[40.777,43.923],[40.734,43.742],[40.701,43.663],[40.696,43.543],[40.52,43.505]],[[39.752,45.127],[39.677,45.167],[39.54,45.156],[39.315,44.999],[39.009,44.984],[38.927,45.036],[38.825,45.02],[38.711,45.026],[38.767,44.938],[39.443,44.802],[39.637,44.871],[39.583,44.923],[39.486,44.987],[39.542,45.04],[39.664,45.018],[39.603,44.967],[39.64,44.952],[39.688,44.977],[39.728,44.938],[39.921,44.975],[39.961,44.89],[39.993,44.816],[39.997,44.718],[39.915,44.699],[39.915,44.583],[39.801,44.379],[39.834,44.329],[39.963,44.258],[40.048,44.157],[39.988,44.078],[39.894,44.107],[39.825,44.173],[39.716,44.151],[39.749,44.046],[39.751,43.969],[39.819,43.891],[40.011,43.846],[40.336,43.769],[40.445,43.932],[40.406,44.009],[40.431,44.274],[40.371,44.535],[40.379,44.652],[40.549,44.727],[40.628,44.624],[40.674,44.484],[40.747,44.467],[40.669,44.652],[40.534,44.908],[40.097,45.101],[39.871,45.1],[39.752,45.127]]]},"novgorod":{"type":"Polygon","coordinates":[[[34.73,59.103],[34.875,59.038],[34.964,58.944],[35.08,58.921],[35.128,58.831],[35.215,58.818],[35.369,58.832],[35.612,58.83],[35.821,58.787],[35.836,58.745],[36.12,58.7],[36.137,58.63],[36.206,58.579],[36.118,58.509],[35.935,58.423],[35.386,58.431],[35.279,58.352],[35.184,58.242],[34.971,58.218],[34.705,58.218],[34.713,58.095],[34.513,58.121],[34.028,58.207],[33.719,58.158],[33.6,58.099],[33.686,58.003],[33.703,57.92],[33.573,57.847],[33.477,57.687],[33.305,57.562],[33.286,57.449],[33.092,57.457],[32.886,57.453],[32.683,57.389],[32.529,57.297],[32.347,57.243],[32.256,57.265],[32.244,57.192],[32.09,57.153],[31.926,57.086],[31.708,57.093],[31.678,57.013],[31.563,56.955],[31.329,56.965],[30.882,56.956],[30.645,56.974],[30.662,57.115],[30.653,57.194],[30.769,57.243],[30.488,57.435],[30.493,57.708],[30.413,57.781],[30.549,57.858],[29.938,57.946],[30.005,58.029],[29.927,58.024],[29.715,58.071],[29.656,58.238],[29.975,58.445],[30.118,58.503],[30.143,58.563],[30.102,58.674],[30.185,58.767],[30.344,58.733],[30.687,58.746],[30.962,58.975],[31.043,59.084],[31.196,59.024],[31.346,59.036],[31.484,59.148],[31.56,59.221],[31.54,59.293],[31.586,59.366],[31.882,59.375],[32.11,59.391],[32.223,59.318],[32.31,59.258],[32.325,59.198],[32.584,59.181],[32.762,59.22],[32.887,59.355],[33.021,59.424],[33.34,59.321],[33.608,59.343],[33.815,59.233],[33.914,59.205],[34.108,59.145],[34.237,59.191],[34.431,59.143],[34.73,59.103]]]},"kalinin":{"type":"Polygon","coordinates":[[[37.626,58.49],[37.772,57.628],[38.011,56.775],[37.022,56.528],[35.36,56.21],[33.179,55.648],[31.492,56.301],[31.61,56.974],[33.291,57.442],[34.948,58.235],[37.063,58.864],[37.626,58.49]]]},"lombardy":{"type":"Polygon","coordinates":[[[9.496,45.645],[9.056,45.646],[9.235,45.728],[9.952,45.671],[10.643,45.453],[10.221,45.232],[10.702,45.423],[10.474,44.983],[9.545,45.142],[8.531,45.337],[9.148,45.687],[9.496,45.645]]]},"venice":{"type":"Polygon","coordinates":[[[13.096,45.652],[12.846,45.839],[11.657,45.64],[11.703,45.461],[10.895,45.8],[12.376,45.032],[12.149,45.058],[11.927,46.251],[13.423,45.724],[13.869,45.641],[12.34,46.26],[13.096,45.652]]]},"tuscany":{"type":"Polygon","coordinates":[[[10.793,43.719],[11.65,43.863],[11.753,42.809],[11.82,43.822],[11.956,43.176],[11.36,43.044],[10.69,43.31],[10.701,43.796],[10.706,44.015],[11.191,44.031],[10.218,44.293],[10.793,43.719]]]},"rome-n":{"type":"Polygon","coordinates":[[[12.774,41.421],[12.629,42.175],[12.566,41.635],[11.97,42.765],[12.223,42.182],[13.186,42.687],[13.223,42.278],[12.547,42.294],[13.433,41.458],[13.357,41.831],[13.55,41.415],[12.774,41.421]]]},"umbria":{"type":"Polygon","coordinates":[[[12.367,42.676],[11.965,43.18],[12.057,43.437],[12.32,43.546],[12.875,43.116],[13.256,42.802],[12.749,42.633],[12.35,42.679],[12.776,42.524],[12.301,42.49],[12.016,42.909],[12.367,42.676]]]},"naples-n":{"type":"Polygon","coordinates":[[[14.471,40.625],[14.571,40.826],[13.866,41.428],[14.387,41.121],[14.822,41.427],[14.572,41.01],[15.159,41.276],[14.732,40.841],[14.578,40.712],[15.481,40.641],[15.669,40.097],[14.471,40.625]]]},"cassino":{"type":"Polygon","coordinates":[[[13.42,41.4],[13.639,41.808],[13.55,41.415],[14.167,41.783],[13.353,41.919],[13.228,42.272],[14.423,41.644],[13.952,41.679],[14.452,41.766],[14.919,41.451],[14.749,42.022],[13.42,41.4]]]},"salerno":{"type":"Polygon","coordinates":[[[15.647,40.047],[14.677,40.828],[15.614,40.426],[15.791,40.252],[15.362,40.834],[16.198,40.272],[15.977,39.981],[16.056,40.656],[16.597,40.047],[15.746,39.925],[16.41,40.108],[15.647,40.047]]]},"calabria":{"type":"Polygon","coordinates":[[[16.64,40.119],[16.601,39.19],[15.916,40.002],[16.347,39.941],[17.158,39.04],[16.92,39.406],[16.374,38.761],[16.883,39.007],[16.42,38.554],[15.638,38.028],[16.435,38.508],[16.64,40.119]]]},"sicily":{"type":"Polygon","coordinates":[[[12.976,38.044],[13.031,37.814],[14.752,37.821],[12.273,37.94],[12.983,37.736],[13.936,37.33],[14.715,37.697],[15.208,37.737],[14.803,37.576],[14.841,36.848],[15.0,36.702],[12.976,38.044]]]},"norway":{"type":"Polygon","coordinates":[[[18.189,68.538],[17.193,68.308],[12.929,66.452],[18.803,69.682],[27.698,71.066],[10.661,64.395],[10.862,60.49],[8.004,58.356],[5.688,60.036],[5.109,62.109],[8.315,63.181],[18.189,68.538]]]},"denmark":{"type":"Polygon","coordinates":[[[9.317,54.802],[9.57,55.193],[8.46,55.372],[8.286,55.847],[10.313,56.597],[10.544,55.998],[9.93,57.567],[10.855,57.271],[11.871,54.76],[11.794,55.683],[12.167,55.66],[9.317,54.802]]]},"netherlands":{"type":"Polygon","coordinates":[[[7.195,53.245],[6.18,52.817],[5.785,52.804],[5.612,51.982],[6.064,50.908],[3.887,51.4],[5.126,51.737],[4.865,51.962],[5.483,53.246],[5.847,52.578],[5.264,52.276],[7.195,53.245]]]},"belgium":{"type":"Polygon","coordinates":[[[2.651,50.812],[3.884,50.751],[4.676,50.076],[4.859,49.892],[5.732,49.854],[5.075,50.707],[4.249,51.347],[4.695,51.0],[5.172,50.914],[5.124,51.0],[4.184,50.664],[2.651,50.812]]]},"ruhr":{"type":"Polygon","coordinates":[[[6.772,52.109],[7.027,52.239],[7.398,52.307],[7.571,52.38],[7.586,52.428],[7.694,52.448],[7.906,52.377],[7.932,52.305],[7.916,52.251],[7.904,52.2],[7.99,52.182],[7.967,52.121],[7.965,52.041],[8.235,52.116],[8.481,52.165],[8.46,52.304],[8.347,52.446],[8.466,52.491],[8.668,52.515],[8.71,52.429],[8.894,52.4],[9.097,52.495],[9.117,52.456],[9.041,52.339],[8.982,52.268],[9.042,52.224],[9.004,52.164],[9.016,52.136],[9.149,52.102],[9.199,52.017],[9.177,51.992],[9.224,51.976],[9.273,51.935],[9.335,51.906],[9.45,51.867],[9.458,51.833],[9.428,51.763],[9.391,51.734],[9.389,51.674],[9.394,51.64],[9.355,51.594],[9.332,51.55],[9.233,51.492],[9.215,51.459],[9.084,51.46],[9.021,51.508],[8.909,51.455],[8.944,51.417],[8.853,51.375],[8.704,51.366],[8.648,51.334],[8.591,51.26],[8.622,51.24],[8.712,51.271],[8.73,51.252],[8.752,51.188],[8.705,51.116],[8.521,51.085],[8.538,51.013],[8.491,50.973],[8.401,50.892],[8.314,50.864],[8.197,50.827],[8.139,50.773],[8.175,50.744],[8.089,50.697],[7.984,50.795],[7.934,50.835],[7.856,50.908],[7.768,50.86],[7.676,50.81],[7.684,50.776],[7.61,50.746],[7.38,50.699],[7.373,50.653],[7.221,50.63],[7.155,50.601],[7.062,50.593],[6.89,50.525],[6.853,50.461],[6.76,50.467],[6.778,50.424],[6.798,50.357],[6.625,50.35],[6.573,50.374],[6.422,50.368],[6.392,50.372],[6.343,50.393],[6.26,50.493],[6.171,50.518],[6.159,50.622],[5.993,50.744],[6.001,50.822],[6.031,50.915],[5.888,50.967],[5.983,51.075],[6.065,51.232],[6.202,51.439],[6.012,51.716],[5.948,51.823],[6.127,51.897],[6.382,51.828],[6.798,51.957],[6.689,52.063],[6.772,52.109]]]},"rhine":{"type":"Polygon","coordinates":[[[6.101,50.063],[7.694,50.798],[8.39,49.815],[6.497,49.799],[9.927,51.367],[9.912,50.7],[8.992,50.046],[8.599,49.61],[8.134,50.776],[9.198,51.458],[9.863,51.409],[6.101,50.063]]]},"alsace":{"type":"Polygon","coordinates":[[[9.55,47.534],[8.882,47.656],[8.715,47.701],[8.667,47.778],[8.542,47.795],[8.391,47.692],[8.568,47.663],[8.578,47.633],[8.538,47.612],[8.294,47.611],[8.105,47.581],[7.801,47.576],[7.637,47.595],[7.515,47.686],[7.559,47.869],[7.612,47.959],[7.613,48.179],[7.737,48.393],[7.802,48.548],[7.965,48.748],[8.084,48.804],[8.387,49.232],[8.501,49.429],[8.417,49.579],[8.613,49.541],[8.601,49.611],[8.687,49.586],[8.808,49.523],[8.893,49.497],[8.849,49.483],[8.818,49.426],[8.846,49.396],[8.909,49.44],[8.927,49.48],[9.04,49.503],[9.121,49.507],[9.074,49.57],[9.259,49.579],[9.289,49.63],[9.404,49.64],[9.4,49.719],[9.369,49.698],[9.313,49.735],[9.401,49.784],[9.643,49.783],[9.65,49.754],[9.64,49.725],[9.644,49.691],[9.698,49.714],[9.727,49.687],[9.804,49.713],[9.882,49.613],[9.861,49.573],[9.867,49.548],[9.905,49.58],[9.926,49.554],[9.936,49.483],[10.063,49.523],[10.099,49.529],[10.123,49.514],[10.113,49.445],[10.151,49.385],[10.15,49.321],[10.154,49.266],[10.144,49.25],[10.155,49.207],[10.221,49.154],[10.264,49.127],[10.24,49.106],[10.263,49.089],[10.274,49.05],[10.357,49.032],[10.446,48.949],[10.448,48.909],[10.448,48.85],[10.444,48.806],[10.431,48.761],[10.495,48.699],[10.438,48.69],[10.375,48.665],[10.303,48.701],[10.282,48.655],[10.331,48.625],[10.313,48.596],[10.314,48.535],[10.251,48.505],[10.133,48.487],[10.051,48.462],[10.001,48.37],[10.14,48.084],[10.109,47.938],[10.09,47.87],[10.104,47.86],[10.092,47.802],[10.104,47.768],[10.13,47.683],[10.076,47.65],[9.929,47.659],[9.659,47.599],[9.55,47.534]]]},"normandy":{"type":"Polygon","coordinates":[[[-1.59,48.642],[-1.878,49.545],[-1.131,48.85],[0.355,49.283],[-1.131,48.85],[0.541,48.867],[0.416,48.316],[0.592,49.438],[1.105,48.762],[0.355,49.283],[1.046,49.292],[-1.59,48.642]]]},"paris":{"type":"Polygon","coordinates":[[[2.235,48.834],[3.724,49.149],[3.671,49.223],[2.881,47.764],[4.982,47.688],[2.875,47.521],[2.486,48.397],[2.508,48.73],[3.919,50.325],[2.766,50.038],[2.576,49.6],[2.235,48.834]]]},"brittany":{"type":"Polygon","coordinates":[[[-3.539,47.774],[-4.298,48.344],[-3.597,48.487],[-2.796,47.63],[-3.391,47.884],[-2.395,47.455],[-1.597,49.652],[-3.287,48.843],[-1.982,48.28],[-1.288,48.515],[-1.937,48.348],[-3.539,47.774]]]},"loire":{"type":"Polygon","coordinates":[[[-1.991,47.035],[-0.942,47.392],[-0.403,47.08],[-1.505,46.88],[0.383,48.346],[-0.778,48.453],[0.451,47.622],[1.941,47.667],[1.055,46.986],[0.681,46.115],[0.992,46.288],[-1.991,47.035]]]},"bordeaux":{"type":"Polygon","coordinates":[[[-1.251,44.468],[0.049,45.109],[-0.61,44.4],[-0.133,44.209],[0.882,44.141],[0.749,45.682],[1.276,44.712],[0.801,45.873],[-1.143,45.858],[-0.267,45.472],[-1.285,46.196],[-1.251,44.468]]]},"marseille":{"type":"Polygon","coordinates":[[[5.672,43.18],[5.347,43.734],[5.855,43.725],[5.193,44.229],[4.286,44.304],[3.026,43.278],[2.217,42.668],[1.951,42.58],[5.644,44.606],[4.823,45.111],[4.77,45.366],[5.672,43.18]]]},"leningrad-city":{"type":"Polygon","coordinates":[[[29.2,60.5],[31.5,61.0],[32.5,60.0],[31.0,59.2],[29.5,59.5],[29.2,60.5]]]}};
+// Map center/zoom per front
+const MAP_CONFIG = {
+  east:  { center:[53, 33], zoom:6 },
+  italy: { center:[42, 13], zoom:7 },
+  west:  { center:[50,  3], zoom:6 },
+};
+
+// Tile layer
+const TILE = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+const TILE_ATTR = '&copy; OpenStreetMap contributors &copy; CARTO';
+
+function ctrlStyle(t) {
+  const isObj = t.isObj, isKey = t.isKey;
+  if (t.ctrl === 'de') return {
+    fillColor: isObj ? 'rgba(200,184,130,0.45)' : 'rgba(150,110,25,0.42)',
+    color: isObj ? '#c8b882' : isKey ? '#c8a030' : '#8a5a18',
+    weight: isObj ? 2.5 : isKey ? 2 : 1.5,
+    fillOpacity: 1, opacity: 0.9
+  };
+  if (t.ctrl === 'so') return {
+    fillColor: isObj ? 'rgba(200,184,130,0.3)' : 'rgba(150,25,25,0.42)',
+    color: isObj ? '#c8b882' : '#6a1818',
+    weight: isObj ? 2.5 : 1.5, fillOpacity: 1, opacity: 0.9
+  };
+  return {
+    fillColor: 'rgba(25,120,50,0.38)', color: '#1a5a18',
+    weight: 1.5, fillOpacity: 1, opacity: 0.9
+  };
+}
+
+function initMaps() {
+  ['east','italy','west'].forEach(front => {
+    const cfg = MAP_CONFIG[front];
+    const map = L.map('map-'+front, {
+      center: cfg.center, zoom: cfg.zoom,
+      zoomControl: true, attributionControl: false,
+      tap: true, tapTolerance: 15,
+      dragging: true, touchZoom: true,
+    });
+    L.tileLayer(TILE, { attribution: TILE_ATTR, subdomains: 'abcd', maxZoom: 10, minZoom: 3 }).addTo(map);
+    MAPS[front] = map;
+    GEO_LAYERS[front] = {};
+
+    const fd = FRONTS[front];
+    Object.entries(fd).forEach(([tid, t]) => {
+      const gj = GEO[tid];
+      if (!gj) return;
+      const style = ctrlStyle(t);
+      const layer = L.geoJSON(gj, { style }).addTo(map);
+      // Both click and touch for mobile
+      layer.on('click', () => selT(tid, front));
+      layer.on('touchend', (e) => { L.DomEvent.preventDefault(e); selT(tid, front); });
+      layer.on('mouseover', () => layer.setStyle({ fillOpacity: 0.7 }));
+      layer.on('mouseout', () => layer.setStyle({ fillOpacity: style.fillOpacity }));
+      GEO_LAYERS[front][tid] = layer;
+    });
+  });
+  refreshAllMarkers();
+}
+
+function refreshLayerStyle(front, tid) {
+  const t = FRONTS[front][tid]; if (!t) return;
+  const layer = GEO_LAYERS[front] && GEO_LAYERS[front][tid]; if (!layer) return;
+  const style = ctrlStyle(t);
+  const isAtk = G.currentAttacks.some(a => a.tid === tid && a.front === front);
+  layer.setStyle({ ...style, color: isAtk ? '#c02020' : style.color, weight: isAtk ? 3 : style.weight, dashArray: isAtk ? '6 3' : null });
+}
+
+function refreshAllStyles() {
+  Object.keys(FRONTS).forEach(front =>
+    Object.keys(FRONTS[front]).forEach(tid => refreshLayerStyle(front, tid))
+  );
+}
+
+function refreshAllMarkers() {
+  ['east','italy','west'].forEach(front => refreshMarkers(front));
+}
+
+function refreshMarkers(front) {
+  const map = MAPS[front]; if (!map) return;
+  const fd = FRONTS[front];
+
+  // Remove old block markers for this front
+  Object.keys(BLK_MARKERS).forEach(k => {
+    if (k.startsWith(front + '_')) { BLK_MARKERS[k].remove(); delete BLK_MARKERS[k]; }
+  });
+
+  // Add block markers
+  Object.entries(fd).forEach(([tid, t]) => {
+    if (t.ctrl !== 'de' || (t.blocks || 0) === 0) return;
+    const gj = GEO[tid]; if (!gj) return;
+    // Compute centroid from polygon
+    const coords = gj.geometry.coordinates[0];
+    const lat = coords.reduce((s,c)=>s+c[1],0)/coords.length;
+    const lng = coords.reduce((s,c)=>s+c[0],0)/coords.length;
+    const isAtk = G.currentAttacks.some(a => a.tid === tid && a.front === front);
+    const html = `<div class="blk-icon${isAtk?' under-attack-pulse':''}" style="width:22px;height:22px">${t.blocks}</div>`;
+    const icon = L.divIcon({ html, className:'', iconSize:[22,22], iconAnchor:[11,11] });
+    const mkr = L.marker([lat,lng], { icon, zIndexOffset:500, interactive:false }).addTo(map);
+    BLK_MARKERS[front+'_'+tid] = mkr;
+  });
+
+  // SU markers
+  SU.forEach(su => {
+    if (su.front !== front || su.destroyed) return;
+    if (SU_MARKERS_MAP[su.id]) { SU_MARKERS_MAP[su.id].remove(); delete SU_MARKERS_MAP[su.id]; }
+    const t = fd[su.loc]; if (!t) return;
+    const gj = GEO[su.loc]; if (!gj) return;
+    const coords = gj.geometry.coordinates[0];
+    const lat = coords.reduce((s,c)=>s+c[1],0)/coords.length + 0.3;
+    const lng = coords.reduce((s,c)=>s+c[0],0)/coords.length + 0.3;
+    const html = `<div class="su-icon" style="width:20px;height:20px;background:${su.color}">${su.sym}</div>`;
+    const icon = L.divIcon({ html, className:'', iconSize:[20,20], iconAnchor:[10,10] });
+    const mkr = L.marker([lat,lng], { icon, zIndexOffset:1000 }).addTo(map);
+    mkr.on('click', () => openMoveToken(su.id));
+    mkr.bindTooltip(`<strong>${su.name}</strong><br>${su.desc}`, { className:'leaflet-popup-content-wrapper', direction:'top' });
+    SU_MARKERS_MAP[su.id] = mkr;
+  });
+}
+
+// Override the SVG-based renderAllTokens with Leaflet version
+function renderAllTokens() { refreshAllMarkers(); }
+function refreshMapStyles() { refreshAllStyles(); refreshAllMarkers(); }
+
+// switchFront needs to invalidate Leaflet map size
+const _origSwitchFront = switchFront;
+
+// ═══════════════════════════════════════════════════════════
+// UI UPDATES
+// ═══════════════════════════════════════════════════════════
+function calcIncome(){
+  let inc=0;
+  Object.values(FRONTS).forEach(f=>Object.values(f).forEach(t=>{if(t.ctrl==='de')inc+=t.income;}));
+  return Math.max(20,inc-Math.floor(G.turn/5)*5);
+}
+
+function addLog(msg,type=''){
+  const log=document.getElementById('dlog');
+  const d=document.createElement('div');
+  d.className='dmsg'+(type?' '+type:'');
+  d.innerHTML=`<div class="dt">T${G.turn} · ${MONTHS[Math.min(G.month,MONTHS.length-1)]}</div>${msg}`;
+  log.appendChild(d);log.scrollTop=log.scrollHeight;
+}
+
+function updateTop(){
+  const inc=calcIncome();
+  const pe=document.getElementById('pool');
+  pe.textContent=G.pool;pe.className='val'+(G.pool<100?' danger':G.pool<600?' warn':'');
+  document.getElementById('income').textContent='+'+inc;
+  document.getElementById('turn').textContent=G.turn;
+  document.getElementById('mdate').textContent=MONTHS[Math.min(G.month,MONTHS.length-1)];
+  document.getElementById('pc').textContent=G.pc;
+  let deHeld=0;Object.values(FRONTS).forEach(f=>Object.values(f).forEach(t=>{if(t.ctrl==='de')deHeld++;}));
+  document.getElementById('deheld').textContent=deHeld;
+  ['de','so','wa'].forEach(k=>{
+    const v=k==='de'?G.deSupport:k==='so'?G.soSupport:G.waSupport;
+    document.getElementById(k+'-bar').style.width=Math.max(0,v)+'%';
+    document.getElementById(k+'-sup').textContent=v+'%';
+  });
+  renderSUPanel();renderObjectives();setPhaseUI();
+  renderAllTokens();
+}
+
+function setPhaseUI(){
+  const phases=['attacks','choose','fight','auto','okw','manage'];
+  phases.forEach(p=>{
+    const el=document.getElementById('ph-'+p);if(!el)return;
+    el.classList.remove('active','done');
+    const idx=phases.indexOf(p),cur=phases.indexOf(G.phase);
+    if(p===G.phase)el.classList.add('active');
+    else if(idx<cur)el.classList.add('done');
+  });
+}
+
+function renderSUPanel(){
+  document.getElementById('su-list').innerHTML=SU.map(su=>`
+    <div class="su-row">
+      <span style="flex:1;font-size:0.55rem;color:${su.destroyed?'#4a1010':su.color};${su.destroyed?'text-decoration:line-through;opacity:0.45':''}">${su.sym} ${su.name}</span>
+      <span style="font-size:0.48rem;color:var(--muted)">${su.destroyed?'KIA':su.front+'/'+su.loc}</span>
+      <span style="color:${su.destroyed?'#8a1010':'#5aaa2a'};margin-left:3px;font-size:0.56rem">${su.destroyed?'✗':'♥'.repeat(su.hp)}</span>
+    </div>`).join('');
+}
+
+function renderObjectives(){
+  document.getElementById('obj-list').innerHTML=G.objectives.map(o=>{
+    const t=getT(o.target);const held=t&&t.ctrl==='de';
+    return`<div class="obj-row">
+      <div style="width:12px;text-align:center;flex-shrink:0;font-size:0.6rem">${o.completed?'✓':held?'⚑':'✗'}</div>
+      <div><div class="obj-text" style="color:${o.completed?'#5aaa2a':held?'var(--tan)':'#8a4a2a'}">${o.name}</div>
+      <div class="obj-progress">${o.completed?'COMPLETE':held?`${o.progress}/${o.turns} turns`:'LOST'}</div></div>
+    </div>`;
+  }).join('');
+}
+
+function switchFront(f){
+  G.currentFront=f;
+  document.querySelectorAll('.map-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.ftab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('panel-'+f).classList.add('active');
+  document.getElementById('tab-'+f).classList.add('active');
+  document.getElementById('sb-title').textContent=f.toUpperCase()+' FRONT';
+  setTimeout(()=>{ if(MAPS[f]) MAPS[f].invalidateSize(); }, 60);
+}
+
+// ═══════════════════════════════════════════════════════════
+// TERRITORY SELECTION
+// ═══════════════════════════════════════════════════════════
+function selT(tid,front){
+  G.sel=tid;
+  const t=FRONTS[front][tid];if(!t)return;
+  document.getElementById('sb-title').textContent=t.name.toUpperCase();
+  const isDE=t.ctrl==='de';
+  const blocks=t.blocks||0;
+  const budget=blockBudget(blocks);
+  const isAttacked=G.currentAttacks.some(a=>a.tid===tid&&a.front===front);
+  const isChosen=G.chosenAttack!==null&&G.currentAttacks[G.chosenAttack]&&G.currentAttacks[G.chosenAttack].tid===tid;
+
+  document.getElementById('sb-body').innerHTML=`
+    <div class="dname">${t.name}${t.isObj?' ★':t.isKey?' ⚑':''}</div>
+    <div class="dctrl ${isDE?'de':t.ctrl==='so'?'so':'al'}">${isDE?'🇩🇪 GERMAN-HELD':(t.ctrl==='so'?'🔴 SOVIET-HELD':'🟢 ALLIED-HELD')}</div>
+    ${isDE?`
+      <div class="dsec"><h4>Garrison</h4>
+        <div style="font-size:0.68rem;color:var(--tan)">${blocks} Block${blocks!==1?'s':''} = ${budget}pts spending power</div>
+        <div style="font-size:0.56rem;color:var(--muted)">Income: +${t.income}/turn</div>
+        <div style="margin-top:4px;display:flex;gap:4px;flex-wrap:wrap">
+          <button class="abtn fight" style="font-size:0.6rem;padding:4px" onclick="addBlock('${tid}')" ${G.pool<600?'disabled':''}>+1 Block (600mp)</button>
+          ${blocks>0?`<button class="abtn" style="border-color:#8a2010;color:#c04030;font-size:0.6rem;padding:4px" onclick="removeBlock('${tid}')">-1 Block (+200mp)</button>`:''}
+        </div>
+      </div>`:`
+      <div class="dsec"><h4>Enemy Position</h4>
+        <div class="sbadge ${t.str}">${t.str.toUpperCase()}</div>
+      </div>`}
+    <div class="dsec"><h4>Intel</h4>
+      <div class="importance">${t.importance}</div>
+      ${t.incentive?`<div class="incentive">⚑ ${t.incentive}</div>`:''}
+    </div>
+    ${isAttacked?`<div style="font-size:0.6rem;color:#c02020;border:1px solid #c02020;padding:4px;margin-top:5px">⚠ UNDER ATTACK THIS TURN</div>`:''}
+    ${isAttacked&&isDE&&G.phase==='choose'&&!isChosen?`<button class="abtn fight" onclick="chooseThisBattle('${tid}','${front}')">⚔ FIGHT HERE PERSONALLY</button>`:''}
+    ${isChosen?`<div style="font-size:0.6rem;color:var(--tan);border:1px solid var(--tan);padding:4px;margin-top:5px">✓ YOU WILL FIGHT HERE</div>`:''}`;
+}
+
+function addBlock(tid){
+  if(G.pool<600){alert('Need 600 manpower per block.');return;}
+  const t=getT(tid);if(!t||t.ctrl!=='de')return;
+  t.blocks=(t.blocks||0)+1;G.pool-=600;
+  updateTop();addLog(`+1 block → ${t.name}. Now ${t.blocks}.`,'good');
+  selT(tid,t.front);
+}
+
+function removeBlock(tid){
+  const t=getT(tid);if(!t||t.ctrl!=='de'||(t.blocks||0)===0)return;
+  t.blocks--;G.pool+=200;updateTop();selT(tid,t.front);
+}
+
+function blockBudget(b){return b<=0?0:b===1?160:b<=3?320:480;}
+function enemyBudgetFor(str){return str==='weak'?160:320;}
+
+// ═══════════════════════════════════════════════════════════
+// UNIT ALLOCATION
+// ═══════════════════════════════════════════════════════════
+function allocate(budget,tid){
+  const t=getT(tid);if(!t||budget<=0)return{units:[],total:0};
+  const alloc=[];let spent=0;const used=[];
+  function addR(cat){
+    const opts=UR.filter(u=>u.cat===cat&&!used.includes(u.n)&&u.c<=budget-spent);
+    if(!opts.length)return false;
+    const un=opts[Math.floor(Math.random()*opts.length)];
+    alloc.push({n:un.n,c:un.c});spent+=un.c;used.push(un.n);return true;
+  }
+  const f=t.front,lean=budget<=160;
+  const isUrban=['kharkov','minsk','paris','rome-n'].includes(tid);
+  const isMtn=['cassino','umbria'].includes(tid);
+  if(lean){addR('inf');addR('inf');addR('td');addR('at');addR('sup');addR('lv');}
+  else if(isMtn){addR('inf');addR('inf');addR('inf');addR('td');addR('at');addR('arty');addR('sup');addR('lv');}
+  else if(isUrban){addR('inf');addR('inf');addR('inf');addR('inf');addR('td');addR('htc');addR('at');addR('sup');addR('arty');}
+  else if(f==='east'){addR('inf');addR('inf');addR('mt');addR('td');addR('htc');addR('at');addR('spg');addR('sup');addR('arty');addR('lv');}
+  else if(f==='west'){addR('inf');addR('inf');addR('mt');addR('td');addR('htc');addR('at');addR('spg');addR('sup');addR('arty');}
+  else{addR('inf');addR('inf');addR('mt');addR('td');addR('at');addR('sup');addR('arty');}
+  ['sup','at','lv'].forEach(c=>{if(spent+5<=budget)addR(c);});
+  return{units:alloc,total:spent};
+}
+
+function calcHoldChance(blocks,str){
+  const m={weak:0.15,medium:-0.05,strong:-0.2}[str]||0;
+  return Math.min(0.88,Math.max(0.08,0.35+blocks*0.18+m));
+}
+
+// ═══════════════════════════════════════════════════════════
+// TURN SEQUENCE
+// ═══════════════════════════════════════════════════════════
+function startTurn(){
+  const inc=calcIncome();G.pool+=inc;G.turn++;
+  G.month=Math.min(G.month+1,MONTHS.length-1);
+  G.phase='attacks';G.currentAttacks=[];G.chosenAttack=null;
+
+  // Update turnsHeld & objectives
+  Object.values(FRONTS).forEach(fd=>Object.values(fd).forEach(t=>{
+    if(t.ctrl==='de')t.turnsHeld=(t.turnsHeld||0)+1;else t.turnsHeld=0;
+  }));
+  G.objectives.forEach(o=>{
+    if(o.completed)return;
+    const t=getT(o.target);if(!t)return;
+    if(o.id==='obj-normandy'){
+      const n=getT('normandy');
+      if(n&&n.ctrl==='de'&&(n.blocks||0)>=3)o.progress++;else o.progress=0;
+    } else {
+      if(t.ctrl==='de')o.progress++;else o.progress=0;
+    }
+    if(o.progress>=o.turns){o.completed=true;applyObjectiveReward(o);}
+  });
+
+  addLog(`Turn ${G.turn} — Income +${inc}. Pool: ${G.pool}.`,'good');
+  updateTop();
+  generateAttacks();
+}
+
+function generateAttacks(){
+  G.currentAttacks=[];
+  ['east','italy','west'].forEach(front=>{
+    const fd=FRONTS[front];
+    const deT=Object.entries(fd).filter(([id,t])=>
+      t.ctrl==='de'&&t.adj.some(a=>fd[a]&&fd[a].ctrl!=='de')
+    );
+    if(!deT.length)return;
+    const scored=deT.map(([id,t])=>{
+      const adjE=t.adj.filter(a=>fd[a]&&fd[a].ctrl!=='de').map(a=>fd[a].str||'weak');
+      const eStr=adjE.includes('strong')?'strong':adjE.includes('medium')?'medium':'weak';
+      return{id,t,eStr,score:{strong:3,medium:2,weak:1}[eStr]-(t.blocks||0)};
+    }).sort((a,b)=>b.score-a.score);
+    const pool=scored.slice(0,Math.min(3,scored.length));
+    const chosen=pool[Math.floor(Math.random()*pool.length)];
+    G.currentAttacks.push({
+      tid:chosen.id,front,str:chosen.eStr,
+      enemyBudget:enemyBudgetFor(chosen.eStr),t:chosen.t
+    });
+    document.getElementById(front+'-adot').style.display='';
+  });
+  G.phase='choose';updateTop();
+  // Small delay ensures DOM is updated before modal opens
+  setTimeout(()=>showAttackModal(), 150);
+}
+
+function showAttackModal(){
+  document.getElementById('as-sub').textContent=
+    `${MONTHS[Math.min(G.month,MONTHS.length-1)]} — Pick ONE to fight personally. Others auto-resolve.`;
+  document.getElementById('atk-cards').innerHTML=G.currentAttacks.map((atk,i)=>{
+    const t=atk.t;const blocks=t.blocks||0;
+    return`<div class="atk-card" id="atk-card-${i}" onclick="selectAtk(${i})">
+      <div class="ac-front">${atk.front.toUpperCase()} FRONT</div>
+      <h3>${t.name.toUpperCase()}</h3>
+      <div class="ac-detail">
+        Enemy: <strong>${atk.str.toUpperCase()} — ${atk.enemyBudget}pts</strong><br>
+        Garrison: <strong>${blocks} block${blocks!==1?'s':''} = ${blockBudget(blocks)}pts</strong><br>
+        ${t.importance}
+      </div>
+      <div class="ac-auto">Auto hold chance: ~${Math.round(calcHoldChance(blocks,atk.str)*100)}%</div>
+    </div>`;
+  }).join('');
+  document.getElementById('as-confirm-btn').disabled=true;
+  document.getElementById('atk-sel-modal').classList.add('open');
+}
+
+function selectAtk(i){
+  G.chosenAttack=i;
+  document.querySelectorAll('.atk-card').forEach((el,j)=>el.classList.toggle('selected',j===i));
+  document.getElementById('as-confirm-btn').disabled=false;
+}
+
+function chooseThisBattle(tid,front){
+  const idx=G.currentAttacks.findIndex(a=>a.tid===tid&&a.front===front);
+  if(idx>=0){selectAtk(idx);confirmAtkChoice();}
+}
+
+function confirmAtkChoice(){
+  closeM('atk-sel-modal');
+  G.phase='fight';updateTop();
+  const chosen=G.currentAttacks[G.chosenAttack];
+  switchFront(chosen.front);
+  openBattleModal(chosen,false);
+}
+
+// ═══════════════════════════════════════════════════════════
+// BATTLE MODAL
+// ═══════════════════════════════════════════════════════════
+function openBattleModal(atk,isCtr){
+  const t=atk.t||getT(atk.tid);
+  const blocks=t.ctrl==='de'?(t.blocks||0):(()=>{
+    const fd=FRONTS[atk.front];
+    const adjDE=t.adj.filter(a=>fd[a]&&fd[a].ctrl==='de'&&(fd[a].blocks||0)>=1);
+    return adjDE.reduce((m,a)=>Math.max(m,fd[a].blocks||0),1);
+  })();
+  const myB=blockBudget(Math.max(1,blocks));
+  const alloc=allocate(myB,atk.tid);
+  G.pending={tid:atk.tid,front:atk.front,alloc,myBudget:myB,
+    enemyBudget:atk.enemyBudget,str:atk.str,attachedSU:null,isCounterattack:!!isCtr};
+
+  document.getElementById('bm-title').textContent=(isCtr?'⚔ COUNTERATTACK: ':'🛡 DEFEND: ')+t.name.toUpperCase();
+  document.getElementById('bm-sub').textContent=MONTHS[Math.min(G.month,MONTHS.length-1)]+' · '+atk.front.toUpperCase();
+  document.getElementById('bm-enemy').innerHTML=`
+    <div class="sbadge ${atk.str}">${atk.str.toUpperCase()} — ${atk.enemyBudget}pts</div>
+    <div style="font-size:0.6rem;color:var(--paper);margin-top:3px">Set enemy to <strong>${atk.enemyBudget}pts</strong> in-game · Mode: <strong>${isCtr?'Attack':'Defend'}</strong></div>`;
+  document.getElementById('bm-alloc').innerHTML=alloc.units.length
+    ?alloc.units.map(u=>`<div class="arow"><span class="an">${u.n}</span><span class="ac">${u.c}pts</span></div>`).join('')
+    :'<div style="font-size:0.6rem;color:#8a4a10">Emergency forces only.</div>';
+  document.getElementById('bm-tot').textContent=alloc.total+'pts';
+  document.getElementById('bm-rem').textContent=`Your power: ${myB}pts · Enemy: ${atk.enemyBudget}pts · Survivors refunded.`;
+
+  const avail=SU.filter(su=>!su.destroyed&&su.front===atk.front&&
+    (su.loc===atk.tid||(t.adj&&t.adj.includes(su.loc))));
+  const suSec=document.getElementById('bm-su-sec');
+  if(avail.length){suSec.style.display='';
+    document.getElementById('bm-su-opts').innerHTML=avail.map(su=>
+      `<div class="token-sel" id="tsel-${su.id}" onclick="toggleSU('${su.id}')">
+        <span style="color:${su.color}">★ ${su.name}</span> — ${su.desc}</div>`).join('');}
+  else suSec.style.display='none';
+
+  document.getElementById('bm-setup').innerHTML=
+    `Mode: <strong>${isCtr?'Attack':'Defend'}</strong> · <strong>${MONTHS[Math.min(G.month,MONTHS.length-1)]}</strong><br>
+    Your: <strong>${alloc.total}pts</strong> · Enemy: <strong>${atk.enemyBudget}pts</strong><br>
+    <span style="color:#a0c070;font-size:0.56rem">${isCtr?'⚠ Failure triggers enemy exploitation.':'★ Survivors refunded. Blocks lost on defeat or casualties.'}</span>`;
+
+  const btn=document.getElementById('bm-launch-btn');
+  if(isCtr){btn.textContent='LAUNCH COUNTERATTACK';btn.onclick=launchCounterattack;}
+  else{btn.textContent='LAUNCH BATTLE';btn.onclick=launchBattle;}
+  document.getElementById('battle-modal').classList.add('open');
+}
+
+function toggleSU(id){
+  document.querySelectorAll('.token-sel').forEach(el=>el.classList.remove('active'));
+  G.pending.attachedSU=(G.pending.attachedSU===id)?null:id;
+  if(G.pending.attachedSU){const el=document.getElementById('tsel-'+id);if(el)el.classList.add('active');}
+}
+
+function launchBattle(){
+  closeM('battle-modal');
+  if(G.pending.attachedSU){const su=SU.find(s=>s.id===G.pending.attachedSU);if(su)su.loc=G.pending.tid;}
+  openResultModal('HELD','LOST');
+}
+
+function launchCounterattack(){
+  closeM('battle-modal');
+  document.getElementById('bm-launch-btn').textContent='LAUNCH BATTLE';
+  document.getElementById('bm-launch-btn').onclick=launchBattle;
+  if(G.pending.attachedSU){const su=SU.find(s=>s.id===G.pending.attachedSU);if(su)su.loc=G.pending.tid;}
+  openResultModal('CAPTURED','REPULSED');
+}
+
+function openResultModal(vLabel,dLabel){
+  G.res=null;
+  const rm=document.getElementById('res-modal');
+  document.getElementById('r-sub').textContent=(G.pending.isCounterattack?'COUNTERATTACK: ':'Defense of ')+getT(G.pending.tid).name;
+  document.getElementById('r-losses').innerHTML=G.pending.alloc.units.map(u=>
+    `<div class="lrow"><span>${u.n} <span style="color:var(--muted)">(${u.c}pts)</span></span>
+    <div style="display:flex;gap:3px;align-items:center">
+      <span style="font-size:0.48rem;color:var(--muted)">lost:</span>
+      <input type="number" min="0" max="1" value="0" id="l-${u.n.replace(/\W/g,'_')}"/>
+    </div></div>`
+  ).join('');
+  if(G.pending.attachedSU){
+    const su=SU.find(s=>s.id===G.pending.attachedSU);
+    document.getElementById('r-su-sec').style.display='';
+    document.getElementById('r-su-lost').innerHTML=
+      `<label style="font-size:0.61rem;color:${su.color};display:flex;align-items:center;gap:7px">
+        <input type="checkbox" id="su-lost-chk"> ${su.name} took casualties</label>`;
+  } else document.getElementById('r-su-sec').style.display='none';
+  rm.querySelector('.resbtn.v').textContent='✓ '+vLabel;
+  rm.querySelector('.resbtn.d').textContent='✗ '+dLabel;
+  rm.querySelectorAll('.resbtn').forEach(b=>b.style.opacity='0.5');
+  rm.classList.add('open');
+}
+
+function setRes(r){
+  G.res=r;
+  const rm=document.getElementById('res-modal');
+  rm.querySelectorAll('.resbtn').forEach(b=>{b.style.opacity='0.5';b.style.background='transparent';});
+  rm.querySelectorAll('.resbtn.'+r).forEach(b=>{b.style.opacity='1';b.style.background=r==='v'?'#081808':'#180808';});
+}
+
+function confirmRes(){
+  if(!G.res){
+    // Try to be helpful on mobile - show which button was meant
+    alert('Please tap HELD or LOST first, then tap CONFIRM.');
+    return;
+  }
+  const p=G.pending;const t=getT(p.tid);
+  let lostPts=0;
+  p.alloc.units.forEach(u=>{
+    const inp=document.getElementById('l-'+u.n.replace(/\W/g,'_'));
+    lostPts+=Math.min(parseInt(inp?inp.value:0)||0,1)*u.c;
+  });
+  const survived=p.alloc.total-lostPts;
+  G.pool+=survived;G.pool=Math.max(0,G.pool);
+
+  if(p.attachedSU){
+    const su=SU.find(s=>s.id===p.attachedSU);
+    if(su){const chk=document.getElementById('su-lost-chk');
+      if(chk&&chk.checked){su.hp--;
+        if(su.hp<=0){su.destroyed=true;addLog(`★ ${su.name} destroyed.`,'event');}
+        else addLog(`★ ${su.name} casualties. HP:${su.hp}/${su.maxhp}`,'event');}
+    }
+  }
+
+  const pre=FRONT_PREFIXES[t.front];
+
+  if(G.res==='v'){
+    if(p.isCounterattack){
+      t.ctrl='de';t.blocks=1;t.income=t.income||8;
+      const el=document.getElementById(pre+p.tid);
+      if(el){el.className.baseVal='region de';}
+      G.pc+=2;G.deSupport=Math.min(100,G.deSupport+5);
+      addLog(`✓ COUNTERATTACK SUCCESS — ${t.name} retaken. +2 PC. Refunded ${survived}pts.`,'good');
+    } else {
+      // Proportional block loss on victory
+      const bLost=p.myBudget>0
+        ?Math.min(Math.max(0,Math.round(lostPts/p.myBudget*(t.blocks||0))),Math.max(0,(t.blocks||0)-1)):0;
+      if(bLost>0){
+        t.blocks=Math.max(1,(t.blocks||0)-bLost);
+        addLog(`✓ ${t.name} HELD — ${bLost} block(s) lost to casualties. ${t.blocks} remain. +1 PC.`,'good');
+      } else {
+        addLog(`✓ ${t.name} HELD. Refunded ${survived}pts. +1 PC.`,'good');
+      }
+      G.pc+=1;G.deSupport=Math.min(100,G.deSupport+3);
+      checkIncentive(p.tid,t);
+    }
+  } else {
+    if(p.isCounterattack){
+      const penalty=Math.floor(lostPts*0.5)+30;
+      G.pool=Math.max(0,G.pool-penalty);G.deSupport=Math.max(0,G.deSupport-5);
+      addLog(`✗ COUNTERATTACK REPULSED at ${t.name}. -${penalty}pts penalty. DE -5.`,'enemy');
+      if(Math.random()<0.5){
+        const fd=FRONTS[p.front];
+        const adjDE=t.adj.filter(a=>fd[a]&&fd[a].ctrl==='de');
+        if(adjDE.length){
+          const pt=fd[adjDE[Math.floor(Math.random()*adjDE.length)]];
+          if(Math.random()>calcHoldChance(Math.max(0,(pt.blocks||0)-1),t.str||'medium')){
+            pt.blocks=Math.max(0,(pt.blocks||0)-1);
+            if(pt.blocks===0){
+              pt.ctrl=p.front==='east'?'so':'al';pt.income=0;
+              const el2=document.getElementById(pre+adjDE[0]);
+              if(el2){el2.className.baseVal='region '+(p.front==='east'?'so':'al');}
+              addLog(`⚠ Enemy exploits: ${pt.name} falls!`,'enemy');
+            } else addLog(`⚠ Enemy exploits: ${pt.name} loses a block.`,'enemy');
+          } else addLog(`Enemy tried to exploit at ${pt.name} — held.`,'auto');
+        }
+      }
+    } else {
+      // Defense lost — ALL blocks gone, territory flips
+      t.blocks=0;
+      const newCtrl=t.front==='east'?'so':'al';
+      t.ctrl=newCtrl;t.income=0;
+      const el=document.getElementById(pre+p.tid);
+      if(el){el.className.baseVal='region '+newCtrl;}
+      G.deSupport=Math.max(0,G.deSupport-10);
+      G.okwPressure[t.front]=(G.okwPressure[t.front]||0)+2;
+      if(newCtrl==='so')G.soSupport=Math.min(100,G.soSupport+5);
+      else G.waSupport=Math.min(100,G.waSupport+5);
+      addLog(`✗ ${t.name} LOST — all defenders destroyed. Refunded ${survived}pts.`,'enemy');
+    }
+  }
+
+  closeM('res-modal');
+  if(!p.isCounterattack){G.phase='auto';updateTop();setTimeout(()=>runAutoResolve(),400);}
+  else{G.phase='manage';updateTop();setTimeout(()=>maybeTriggerEvent(),400);}
+}
+
+function checkIncentive(tid,t){
+  const b={
+    kursk:()=>addLog('⚑ Kursk held: Eastern line stable.','good'),
+    kharkov:()=>{G.deSupport=Math.min(100,G.deSupport+5);G.soSupport=Math.max(0,G.soSupport-5);addLog('⚑ Kharkov held.','good');},
+    cassino:()=>{G.waSupport=Math.max(0,G.waSupport-5);G.pc+=1;addLog('⚑ Cassino held. +1 PC.','good');},
+    'rome-n':()=>{G.deSupport=Math.min(100,G.deSupport+5);addLog('⚑ Rome secure.','good');},
+    paris:()=>{G.deSupport=Math.min(100,G.deSupport+3);addLog('⚑ Paris secure.','good');},
+    normandy:()=>{G.waSupport=Math.max(0,G.waSupport-3);addLog('⚑ Normandy held.','good');},
+    ruhr:()=>addLog('⚑ Ruhr intact.','good'),
+  };
+  if(b[tid])b[tid]();
+}
+
+function applyObjectiveReward(o){
+  addLog(`⚑ OBJECTIVE: ${o.name} — ${o.reward}`,'good');G.pc+=2;
+  const r={
+    'obj-kursk':()=>{['kharkov','stalino'].forEach(id=>{const t=getT(id);if(t&&t.ctrl==='de')t.blocks++;});G.deSupport=Math.min(100,G.deSupport+5);},
+    'obj-kharkov':()=>{G.soSupport=Math.max(0,G.soSupport-10);G.pool+=10;},
+    'obj-cassino':()=>{G.waSupport=Math.max(0,G.waSupport-15);Object.values(FRONTS.italy).filter(t=>t.ctrl==='de').forEach(t=>{t.income+=5;});},
+    'obj-rome':()=>{G.waSupport=Math.max(0,G.waSupport-8);G.deSupport=Math.min(100,G.deSupport+10);},
+    'obj-normandy':()=>{G.waSupport=Math.max(0,G.waSupport-15);addLog('⚑ D-DAY REPELLED!','good');},
+    'obj-ruhr':()=>{const r=getT('ruhr');if(r)r.income+=15;},
+  };
+  if(r[o.id])r[o.id]();
+}
+
+// ═══════════════════════════════════════════════════════════
+// AUTO RESOLVE
+// ═══════════════════════════════════════════════════════════
+function runAutoResolve(){
+  const autoAtks=G.currentAttacks.filter((_,i)=>i!==G.chosenAttack);
+  autoAtks.forEach(atk=>{
+    const t=atk.t||getT(atk.tid);if(!t||t.ctrl!=='de')return;
+    const blocks=t.blocks||0;
+    const hold=Math.random()<calcHoldChance(blocks,atk.str);
+    const pre=FRONT_PREFIXES[atk.front];
+    if(hold){
+      const bLost=blocks>0&&Math.random()<0.35?1:0;
+      if(bLost)t.blocks=Math.max(0,t.blocks-1);
+      addLog(`AUTO [${atk.front.toUpperCase()}]: ${t.name} held.${bLost?' 1 block lost.':''}`,'auto');
+    } else {
+      t.blocks=0;t.ctrl=atk.front==='east'?'so':'al';t.income=0;
+      const el=document.getElementById(pre+atk.tid);
+      if(el)el.className.baseVal='region '+t.ctrl;
+      G.deSupport=Math.max(0,G.deSupport-8);
+      G.okwPressure[atk.front]=(G.okwPressure[atk.front]||0)+2;
+      addLog(`AUTO [${atk.front.toUpperCase()}]: ${t.name} LOST.`,'enemy');
+    }
+    document.getElementById(atk.front+'-adot').style.display='none';
+  });
+  G.phase='okw';updateTop();
+  setTimeout(()=>checkOKW(),500);
+}
+
+// ═══════════════════════════════════════════════════════════
+// OKW COUNTERATTACK
+// ═══════════════════════════════════════════════════════════
+function checkOKW(){
+  let bestFront=null,bestTarget=null,bestScore=0;
+  Object.entries(G.okwPressure).forEach(([front,pressure])=>{
+    if(pressure<2)return;
+    const fd=FRONTS[front];
+    Object.entries(fd).filter(([id,t])=>t.ctrl!=='de').forEach(([id,t])=>{
+      const adjDE=t.adj.filter(a=>fd[a]&&fd[a].ctrl==='de'&&(fd[a].blocks||0)>=2);
+      if(!adjDE.length)return;
+      const score=pressure+(adjDE.length*2)-{strong:2,medium:1,weak:0}[t.str||'weak'];
+      if(score>bestScore){bestScore=score;bestFront=front;bestTarget={id,t,front};}
+    });
+  });
+  if(!bestTarget||bestScore<3||Math.random()<0.3){
+    G.phase='manage';updateTop();maybeTriggerEvent();return;
+  }
+  G.okwPressure[bestFront]=Math.max(0,G.okwPressure[bestFront]-2);
+  G.pendingOKW={tid:bestTarget.id,front:bestFront,t:bestTarget.t};
+  showOKWModal();
+}
+
+function showOKWModal(){
+  const o=G.pendingOKW,t=o.t;
+  document.getElementById('okw-title').textContent='⚑ OKW COUNTERATTACK ORDER';
+  document.getElementById('okw-sub').textContent=MONTHS[Math.min(G.month,MONTHS.length-1)]+' — '+o.front.toUpperCase()+' FRONT';
+  document.getElementById('okw-details').innerHTML=
+    `Target: <strong>${t.name}</strong> · ${(t.str||'medium').toUpperCase()}<br>
+    Enemy budget: <strong>${enemyBudgetFor(t.str||'medium')}pts</strong><br>
+    <span style="color:#a0c070;font-size:0.58rem">Decline costs 2 PC. Failure risks adjacent territory.</span>`;
+  document.getElementById('okw-decline-btn').disabled=G.pc<2;
+
+  // Claude API for OKH assessment
+  const intel=document.getElementById('okw-intel');
+  intel.textContent='Generating assessment...';
+  const prompt=`You are a terse German OKH staff officer, ${MONTHS[Math.min(G.month,MONTHS.length-1)]}, ${o.front} front. Write exactly 2 sentences recommending a counterattack on ${t.name} (enemy strength: ${t.str||'medium'}). German war support: ${G.deSupport}%. Be brief, military, no flowery language.`;
+  fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:100,messages:[{role:'user',content:prompt}]})
+  }).then(r=>r.json()).then(d=>{
+    intel.textContent=d.content&&d.content[0]?d.content[0].text:'Assessment unavailable.';
+  }).catch(()=>{
+    intel.textContent=`Local conditions on the ${o.front} front favor limited action at ${t.name}. Adjacent German forces are positioned to exploit.`;
+  });
+  document.getElementById('okw-modal').classList.add('open');
+}
+
+function declineOKW(){
+  if(G.pc<2){alert('Need 2 PC.');return;}
+  G.pc-=2;closeM('okw-modal');
+  addLog('OKW order declined. 2 PC spent.','event');
+  G.phase='manage';updateTop();maybeTriggerEvent();
+}
+
+function executeOKW(){
+  closeM('okw-modal');
+  const o=G.pendingOKW;
+  openBattleModal({tid:o.tid,front:o.front,str:o.t.str||'medium',
+    enemyBudget:enemyBudgetFor(o.t.str||'medium'),t:o.t},true);
+}
+
+// ═══════════════════════════════════════════════════════════
+// EVENTS
+// ═══════════════════════════════════════════════════════════
+const EVENTS=[
+  {id:'speer',title:"Speer's Production Miracle",sub:'War economy reorganized.',body:'Speer increases output through factory rationalization.',eff:'+80 manpower.',fn:()=>{G.pool+=80;addLog('⚡ Speer: +80 manpower.','good');}},
+  {id:'bombing',title:'Allied Bombing Raid',sub:'RAF/USAAF strike Germany.',body:'Factory and rail raids disrupt supply lines.',eff:'-40 manpower.',fn:()=>{G.pool=Math.max(0,G.pool-40);addLog('⚡ Bombing: -40 manpower.','enemy');}},
+  {id:'italy_arm',title:'Italy Seeks Armistice',sub:'Mussolini arrested.',body:'Germany must hold Italy alone. Italian units disarmed.',eff:'Italian enemy strength rises. WA +10.',fn:()=>{Object.values(FRONTS.italy).filter(t=>t.ctrl!=='de').forEach(t=>{if(t.str==='weak')t.str='medium';});G.waSupport=Math.min(100,G.waSupport+10);addLog('⚡ Italy armistice: front hardens.','enemy');}},
+  {id:'fuhrer',title:"Führer's Direct Order",sub:'No retreat permitted.',body:'Führerbefehl arrives: hold all positions.',eff:'DE +5.',fn:()=>{G.deSupport=Math.min(100,G.deSupport+5);addLog("⚡ Führerbefehl: DE +5.",'event');}},
+  {id:'july_plot',title:'July 20th Plot',sub:'Assassination attempt.',body:"Bomb at Wolf's Lair. Hitler survived. Mass arrests.",eff:'DE -10.',fn:()=>{G.deSupport=Math.max(0,G.deSupport-10);addLog('⚡ July plot: DE -10.','enemy');}},
+  {id:'axis_reinf',title:'Axis Reinforcements',sub:'Hungarian divisions arrive.',body:'Axis allies send fresh divisions.',eff:'+50 manpower.',fn:()=>{G.pool+=50;addLog('⚡ Axis allies: +50 manpower.','good');}},
+  {id:'atl_wall',title:'Atlantic Wall Complete',sub:'New fortifications ready.',body:'New bunkers and obstacles along French coast.',eff:'+1 block to Normandy and Belgium.',fn:()=>{['normandy','belgium'].forEach(id=>{const t=getT(id);if(t&&t.ctrl==='de')t.blocks=(t.blocks||0)+1;});addLog('⚡ Atlantic Wall: +1 block Normandy/Belgium.','good');}},
+  {id:'sov_off',title:'Soviet Summer Offensive',sub:'Operation Kutuzov launched.',body:'Massive coordinated Soviet push on multiple sectors.',eff:'Eastern pressure +2.',fn:()=>{G.okwPressure.east=(G.okwPressure.east||0)+2;G.soSupport=Math.min(100,G.soSupport+5);addLog('⚡ Soviet offensive: Eastern pressure rises.','enemy');}},
+  {id:'panzer_del',title:'New Panzer Deliveries',sub:'Fresh Tiger battalions arrive.',body:'New armour from Reich factories.',eff:'+1 HP to all Fire Brigades.',fn:()=>{SU.forEach(su=>{if(!su.destroyed&&su.hp<su.maxhp)su.hp++;});addLog('⚡ New Panzers: Fire Brigades resupplied.','good');}},
+  {id:'allied_air',title:'Allied Air Superiority',sub:'Luftwaffe losing the skies.',body:'Allied fighter-bombers range freely over all fronts.',eff:'-30 manpower. All fronts pressured.',fn:()=>{G.pool=Math.max(0,G.pool-30);['east','italy','west'].forEach(f=>{G.okwPressure[f]=(G.okwPressure[f]||0)+1;});addLog('⚡ Allied air: all fronts under pressure.','enemy');}},
+  {id:'winter',title:'Winter Lull',sub:'Mud and snow slow operations.',body:'Brief respite on all fronts.',eff:'+1 block to most threatened territory.',fn:()=>{const t=Object.values(FRONTS).flatMap(f=>Object.values(f)).filter(t=>t.ctrl==='de'&&(t.blocks||0)<2).sort((a,b)=>(a.blocks||0)-(b.blocks||0))[0];if(t){t.blocks=(t.blocks||0)+1;addLog(`⚡ Winter lull: +1 block to ${t.name}.`,'good');}else addLog('⚡ Winter lull.','good');}},
+  {id:'volks',title:'Volkssturm Mobilization',sub:'Last reserves called up.',body:'Elderly and youth conscripted to the front.',eff:'+60 manpower.',fn:()=>{G.pool+=60;addLog('⚡ Volkssturm: +60 manpower.','good');}},
+  {id:'su_exh',title:'Soviet Overextension',sub:'Red Army outpaces supply.',body:'Soviet momentum stalls. A brief window.',eff:'Eastern pressure -2. SO -5.',fn:()=>{G.okwPressure.east=Math.max(0,(G.okwPressure.east||0)-2);G.soSupport=Math.max(0,G.soSupport-5);addLog('⚡ Soviet overextension: Eastern pressure eases.','good');}},
+  {id:'allied_sup',title:'Allied Logistical Buildup',sub:'Massive convoys cross the Atlantic.',body:'Allied forces resupplied and reinforced.',eff:'WA +8. Italy/West enemy strength rises.',fn:()=>{G.waSupport=Math.min(100,G.waSupport+8);['italy','west'].forEach(fn=>{Object.values(FRONTS[fn]).filter(t=>t.ctrl!=='de').forEach(t=>{if(t.str==='weak')t.str='medium';});});addLog('⚡ Allied buildup: Italy/West enemy stronger.','enemy');}},
+  {id:'romanian',title:'Romanian Wavering',sub:'Bucharest considers switching sides.',body:'Romanian divisions on Eastern Front become unreliable.',eff:'Eastern pressure +1. -20 manpower.',fn:()=>{G.okwPressure.east=(G.okwPressure.east||0)+1;G.pool=Math.max(0,G.pool-20);addLog('⚡ Romanian wavering: Eastern flank weakens.','enemy');}},
+];
+
+let pendingEventFn=null;
+function triggerEvent(id){
+  const ev=id?EVENTS.find(e=>e.id===id):EVENTS[Math.floor(Math.random()*EVENTS.length)];
+  if(!ev)return;
+  pendingEventFn=ev.fn;
+  document.getElementById('evt-title').textContent='⚡ '+ev.title;
+  document.getElementById('evt-sub').textContent=ev.sub;
+  document.getElementById('evt-body').textContent=ev.body;
+  document.getElementById('evt-eff').textContent='Effect: '+ev.eff;
+  document.getElementById('evt-modal').classList.add('open');
+}
+function applyEvent(){if(pendingEventFn){pendingEventFn();pendingEventFn=null;updateTop();}}
+
+function maybeTriggerEvent(){
+  G.phase='manage';updateTop();
+  if(Math.random()<0.5)setTimeout(()=>triggerEvent(null),400);
+  checkEnd();
+}
+
+// ═══════════════════════════════════════════════════════════
+// MOVE TOKEN
+// ═══════════════════════════════════════════════════════════
+function openMoveToken(id){
+  const su=SU.find(s=>s.id===id);if(!su||su.destroyed)return;
+  const fd=FRONTS[su.front];
+  document.getElementById('mv-sub').textContent=`${su.name} — ${su.loc} (${su.front})`;
+  const range=su.id==='gd'?2:1;
+  const reach=new Set([su.loc]);
+  if(fd[su.loc])fd[su.loc].adj.forEach(a=>{if(fd[a])reach.add(a);});
+  if(range>=2&&fd[su.loc])fd[su.loc].adj.forEach(a=>{if(fd[a])fd[a].adj.forEach(b=>{if(fd[b])reach.add(b);});});
+  const valid=[...reach].filter(a=>fd[a]&&fd[a].ctrl==='de');
+  document.getElementById('mv-opts').innerHTML=valid.map(a=>
+    `<div class="token-sel ${a===su.loc?'active':''}" onclick="moveToken('${id}','${a}')">
+      🟡 ${fd[a].name} (${fd[a].blocks||0} blocks) ${a===su.loc?'(current)':''}
+    </div>`).join('');
+  document.getElementById('move-modal').classList.add('open');
+}
+
+function moveToken(suid,tid){
+  const su=SU.find(s=>s.id===suid);if(!su)return;
+  const fd=FRONTS[su.front];if(!fd[tid]||fd[tid].ctrl!=='de')return;
+  su.loc=tid;closeM('move-modal');
+  addLog(`★ ${su.name} → ${fd[tid].name}.`,'event');updateTop();
+}
+
+// ═══════════════════════════════════════════════════════════
+// END CONDITIONS
+// ═══════════════════════════════════════════════════════════
+function checkEnd(){
+  if(getT('moscow')&&getT('moscow').ctrl==='de'){
+    setTimeout(()=>alert('🏆 MOSCOW FALLS\nSoviet ceasefire negotiations begin.\nCampaign victory!'),300);return;
+  }
+  if(getT('paris')&&getT('paris').ctrl!=='de'){
+    setTimeout(()=>alert('💀 PARIS LIBERATED\nWestern Front collapses.'),300);return;
+  }
+  if(getT('ruhr')&&getT('ruhr').ctrl!=='de'){
+    setTimeout(()=>alert('💀 RUHR LOST\nGerman industry destroyed. The war is over.'),300);return;
+  }
+  if(G.deSupport<=15)setTimeout(()=>alert('💀 GERMAN MORALE COLLAPSED\nSurrender imminent.'),300);
+}
+
+function closeM(id){document.getElementById(id).classList.remove('open');}
+
+function toggleSidebar(){
+  const sb=document.querySelector('.sidebar');
+  const btn=document.getElementById('sb-toggle');
+  if(sb.style.display==='none'||sb.style.display===''){
+    sb.style.display='flex';
+    btn.textContent='🗺 MAP';
+  } else {
+    sb.style.display='none';
+    btn.textContent='📋 INFO';
+  }
+}
+
+// Show toggle button on mobile
+if(window.innerWidth<=700){
+  document.getElementById('sb-toggle').style.display='block';
+}
+
+function toggleLegend(){
+  const panel=document.getElementById('map-legend-panel');
+  const btn=document.getElementById('legend-show-btn');
+  if(panel.style.display==='none'){
+    panel.style.display='';btn.style.display='none';
+  } else {
+    panel.style.display='none';btn.style.display='';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// PWA — INSTALL PROMPT
+// ═══════════════════════════════════════════════════════════
+let deferredPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{
+  e.preventDefault();deferredPrompt=e;
+  document.getElementById('install-banner').classList.remove('hidden');
+});
+
+function installPWA(){
+  if(!deferredPrompt)return;
+  deferredPrompt.prompt();
+  deferredPrompt.userChoice.then(()=>{
+    deferredPrompt=null;
+    document.getElementById('install-banner').classList.add('hidden');
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════
+openDB().then(()=>{
+  initMaps();
+  loadGame();
+  updateTop();
+  addLog('July 1943. Kursk has failed. Three fronts active. Press TURN → to begin.','okw');
+}).catch(()=>{
+  initMaps();
+  loadGame();
+  updateTop();
+  addLog('July 1943. Kursk has failed. Press TURN → to begin.','okw');
+});
+</script>
+</body>
+</html>
